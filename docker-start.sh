@@ -1,9 +1,11 @@
 #!/bin/bash
-# Quick start script for Docker deployment
+# Quick start script for Docker deployment (using external databases)
 
 set -e
 
 echo "🚀 Starting Training App with Docker..."
+echo ""
+echo "ℹ️  Using external PostgreSQL and FalkorDB instances"
 echo ""
 
 # Check if Docker is installed
@@ -17,6 +19,26 @@ if ! command -v docker-compose &> /dev/null; then
     echo "❌ Docker Compose is not installed. Please install Docker Compose first."
     exit 1
 fi
+
+# Check if PostgreSQL is accessible
+echo "🔍 Checking PostgreSQL connection..."
+if nc -z localhost 5432 2>/dev/null || timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/5432' 2>/dev/null; then
+    echo "✅ PostgreSQL is accessible on localhost:5432"
+else
+    echo "⚠️  Warning: Cannot connect to PostgreSQL on localhost:5432"
+    echo "   Make sure PostgreSQL is running before starting the backend"
+fi
+
+# Check if FalkorDB/Redis is accessible
+echo "🔍 Checking FalkorDB connection..."
+if nc -z localhost 6379 2>/dev/null || timeout 1 bash -c 'cat < /dev/null > /dev/tcp/localhost/6379' 2>/dev/null; then
+    echo "✅ FalkorDB is accessible on localhost:6379"
+else
+    echo "⚠️  Warning: Cannot connect to FalkorDB on localhost:6379"
+    echo "   Make sure FalkorDB/Redis is running before starting the backend"
+fi
+
+echo ""
 
 # Ask user for mode
 echo "Select deployment mode:"
@@ -56,26 +78,13 @@ sleep 5
 echo ""
 echo "🔍 Checking service health..."
 
-# Check PostgreSQL
-if docker-compose -f $COMPOSE_FILE exec -T postgres pg_isready -U postgres &> /dev/null; then
-    echo "✅ PostgreSQL is ready"
-else
-    echo "⚠️  PostgreSQL is not ready yet"
-fi
-
-# Check FalkorDB
-if docker-compose -f $COMPOSE_FILE exec -T falkordb redis-cli ping &> /dev/null; then
-    echo "✅ FalkorDB is ready"
-else
-    echo "⚠️  FalkorDB is not ready yet"
-fi
-
 # Check Backend
 sleep 3
 if curl -s http://localhost:8000/health &> /dev/null; then
     echo "✅ Backend API is ready"
 else
     echo "⚠️  Backend API is not ready yet (may take a few more seconds)"
+    echo "   Check logs with: docker-compose -f $COMPOSE_FILE logs backend"
 fi
 
 # Display access information
@@ -94,7 +103,7 @@ fi
 echo "🔧 Backend:    http://localhost:8000"
 echo "📚 API Docs:   http://localhost:8000/docs"
 echo ""
-echo "📊 Database:"
+echo "📊 External Databases (on host):"
 echo "   PostgreSQL: localhost:5432"
 echo "   FalkorDB:   localhost:6379"
 echo ""
