@@ -1,42 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: training-app-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: training_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - training-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # FalkorDB (Redis Graph Database)
-  falkordb:
-    image: falkordb/falkordb:latest
-    container_name: training-app-falkordb
-    ports:
-      - "6379:6379"
-    volumes:
-      - falkordb_data:/data
-    networks:
-      - training-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
   # Backend API
   backend:
     build:
@@ -50,15 +14,15 @@ services:
       DEBUG: "False"
       SECRET_KEY: your-production-secret-key-change-me
 
-      # FalkorDB
-      FALKORDB_HOST: falkordb
+      # FalkorDB (using host machine)
+      FALKORDB_HOST: host.docker.internal
       FALKORDB_PORT: 6379
       FALKORDB_DB: 0
-      FALKORDB_PASSWORD: ""
+      FALKORDB_PASSWORD: Default
       FALKORDB_GRAPH_NAME: lms_graph
 
-      # PostgreSQL
-      POSTGRES_HOST: postgres
+      # PostgreSQL (using host machine)
+      POSTGRES_HOST: host.docker.internal
       POSTGRES_PORT: 5432
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -76,11 +40,8 @@ services:
       QUIZ_PASSING_SCORE: 70.0
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      falkordb:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - training-network
     restart: unless-stopped
@@ -104,9 +65,3 @@ services:
 networks:
   training-network:
     driver: bridge
-
-volumes:
-  postgres_data:
-    driver: local
-  falkordb_data:
-    driver: local
