@@ -74,13 +74,27 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
 
     # Fetch user from database
     db = get_postgres_db()
-    query = "SELECT employee_id, employee_name, email, role FROM employees WHERE employee_id = %s"
+    query = """
+        SELECT employee_id, employee_name, email, role, created_at
+        FROM employees
+        WHERE employee_id = %s
+    """
     result = db.execute_query(query, (token_data.employee_id,), fetch=True)
 
     if not result:
         raise credentials_exception
 
-    return dict(result[0])
+    user_data = dict(result[0])
+
+    # Transform to match frontend expectations
+    return {
+        "id": user_data["employee_id"],
+        "username": user_data["email"].split("@")[0],  # Use email prefix as username
+        "email": user_data["email"],
+        "full_name": user_data["employee_name"],
+        "role": user_data["role"],
+        "created_at": user_data["created_at"].isoformat() if user_data.get("created_at") else None
+    }
 
 
 def get_current_admin_user(current_user: dict = Depends(get_current_user)) -> dict:

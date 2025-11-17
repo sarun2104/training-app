@@ -48,10 +48,13 @@ class EmployeeUpdate(BaseModel):
     department: Optional[str] = Field(None, max_length=100)
 
 
-class EmployeeResponse(EmployeeBase):
-    employee_id: str
-    created_at: datetime
-    updated_at: datetime
+class EmployeeResponse(BaseModel):
+    id: str
+    username: str
+    email: EmailStr
+    full_name: str
+    role: Literal["admin", "employee"]
+    created_at: Optional[str] = None
 
     class Config:
         from_attributes = True
