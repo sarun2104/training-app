@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     FALKORDB_HOST: str = "localhost"
     FALKORDB_PORT: int = 6379
     FALKORDB_DB: int = 0
-    FALKORDB_PASSWORD: str = "Default"
+    FALKORDB_PASSWORD: str = ""
     FALKORDB_GRAPH_NAME: str = "lms_graph"
 
     # PostgreSQL
