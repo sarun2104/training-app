@@ -56,20 +56,6 @@ sleep 5
 echo ""
 echo "🔍 Checking service health..."
 
-# Check PostgreSQL
-if docker-compose -f $COMPOSE_FILE exec -T postgres pg_isready -U postgres &> /dev/null; then
-    echo "✅ PostgreSQL is ready"
-else
-    echo "⚠️  PostgreSQL is not ready yet"
-fi
-
-# Check FalkorDB
-if docker-compose -f $COMPOSE_FILE exec -T falkordb redis-cli ping &> /dev/null; then
-    echo "✅ FalkorDB is ready"
-else
-    echo "⚠️  FalkorDB is not ready yet"
-fi
-
 # Check Backend
 sleep 3
 if curl -s http://localhost:8000/health &> /dev/null; then
@@ -94,9 +80,9 @@ fi
 echo "🔧 Backend:    http://localhost:8000"
 echo "📚 API Docs:   http://localhost:8000/docs"
 echo ""
-echo "📊 Database:"
-echo "   PostgreSQL: localhost:5432"
-echo "   FalkorDB:   localhost:6379"
+echo "📊 Database (using host machine services):"
+echo "   PostgreSQL: localhost:5432 (must be running)"
+echo "   FalkorDB:   localhost:6379 (must be running)"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
