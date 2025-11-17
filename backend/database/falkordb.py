@@ -20,11 +20,14 @@ class FalkorDB:
     def connect(self):
         """Establish connection to FalkorDB"""
         try:
+            # Only pass password if it's not empty or "Default"
+            password = settings.FALKORDB_PASSWORD if settings.FALKORDB_PASSWORD and settings.FALKORDB_PASSWORD not in ["", "Default"] else None
+
             self.client = redis.Redis(
                 host=settings.FALKORDB_HOST,
                 port=settings.FALKORDB_PORT,
                 db=settings.FALKORDB_DB,
-                password=settings.FALKORDB_PASSWORD,
+                password=password,
                 decode_responses=True,
             )
             # Test connection
