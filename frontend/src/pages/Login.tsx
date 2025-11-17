@@ -52,13 +52,13 @@ export const Login: React.FC = () => {
             )}
 
             <Input
-              label="Username"
-              type="text"
+              label="Email"
+              type="email"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
+              placeholder="Enter your email"
               required
-              autoComplete="username"
+              autoComplete="email"
             />
 
             <Input
@@ -80,9 +80,9 @@ export const Login: React.FC = () => {
             <p className="text-sm text-gray-600">
               Demo credentials:
               <br />
-              Admin: admin / admin123
+              Admin: admin@company.com / admin123
               <br />
-              Employee: employee / employee123
+              Employee: john.doe@company.com / admin123
             </p>
           </div>
         </div>
