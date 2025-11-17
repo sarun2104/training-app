@@ -74,9 +74,11 @@ tests/
 test_*.py
 *_test.py
 
-# Frontend
-frontend/
-node_modules/
+# Frontend (exclude node_modules but allow source code)
+frontend/node_modules/
+frontend/.env.local
+frontend/dist/
+frontend/build/
 
 # CI/CD
 .github/
