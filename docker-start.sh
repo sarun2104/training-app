@@ -72,7 +72,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 if [ "$COMPOSE_FILE" = "docker-compose.dev.yml" ]; then
-    echo "🌐 Frontend:   http://localhost:3000"
+    echo "🌐 Frontend:   http://localhost:5173"
 else
     echo "🌐 Frontend:   http://localhost"
 fi

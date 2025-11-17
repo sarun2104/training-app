@@ -72,7 +72,7 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 Write-Host ""
 
 if ($COMPOSE_FILE -eq "docker-compose.dev.yml") {
-    Write-Host "🌐 Frontend:   http://localhost:3000" -ForegroundColor White
+    Write-Host "🌐 Frontend:   http://localhost:5173" -ForegroundColor White
 } else {
     Write-Host "🌐 Frontend:   http://localhost" -ForegroundColor White
 }
