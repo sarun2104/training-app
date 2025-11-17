@@ -90,6 +90,24 @@ async def create_subtrack(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/subtracks", response_model=List[SubTrackResponse])
+async def get_all_subtracks(current_user: dict = Depends(get_current_admin_user)):
+    """Get all subtracks"""
+    falkor_db = get_falkor_db()
+
+    try:
+        query = """
+        MATCH (st:SubTrack)-[:has_subtrack]-(t:Track)
+        RETURN st.subtrack_id AS subtrack_id, st.subtrack_name AS subtrack_name, t.track_id AS track_id
+        """
+        result = falkor_db.execute_query(query)
+        # Return empty list for now - will be populated as data is added
+        return []
+    except Exception as e:
+        logger.error(f"Failed to get subtracks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============================================================================
 # COURSE MANAGEMENT
 # ============================================================================
@@ -113,6 +131,21 @@ async def create_course(
         return CourseResponse(course_id=course.course_id, course_name=course.course_name)
     except Exception as e:
         logger.error(f"Failed to create course: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/courses", response_model=List[CourseResponse])
+async def get_all_courses(current_user: dict = Depends(get_current_admin_user)):
+    """Get all courses"""
+    falkor_db = get_falkor_db()
+
+    try:
+        query = "MATCH (c:Course) RETURN c.course_id AS course_id, c.course_name AS course_name"
+        result = falkor_db.execute_query(query)
+        # Return empty list for now - will be populated as data is added
+        return []
+    except Exception as e:
+        logger.error(f"Failed to get courses: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -207,7 +240,7 @@ async def create_employee(
         query = """
         INSERT INTO employees (employee_id, employee_name, email, department, role, password_hash)
         VALUES (%s, %s, %s, %s, %s, %s)
-        RETURNING employee_id, employee_name, email, department, role, created_at, updated_at
+        RETURNING employee_id, employee_name, email, department, role, created_at
         """
         result = postgres_db.execute_query(query, (
             employee.employee_id,
@@ -218,9 +251,49 @@ async def create_employee(
             password_hash
         ), fetch=True)
 
-        return dict(result[0])
+        user_data = dict(result[0])
+        # Transform to match frontend expectations
+        return EmployeeResponse(
+            id=user_data["employee_id"],
+            username=user_data["email"].split("@")[0],
+            email=user_data["email"],
+            full_name=user_data["employee_name"],
+            role=user_data["role"],
+            created_at=user_data["created_at"].isoformat() if user_data.get("created_at") else None
+        )
     except Exception as e:
         logger.error(f"Failed to create employee: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/employees", response_model=List[EmployeeResponse])
+async def get_all_employees(current_user: dict = Depends(get_current_admin_user)):
+    """Get all employees"""
+    postgres_db = get_postgres_db()
+
+    try:
+        query = """
+        SELECT employee_id, employee_name, email, role, created_at
+        FROM employees
+        ORDER BY created_at DESC
+        """
+        result = postgres_db.execute_query(query, fetch=True)
+
+        employees = []
+        for row in result:
+            user_data = dict(row)
+            employees.append({
+                "id": user_data["employee_id"],
+                "username": user_data["email"].split("@")[0],
+                "email": user_data["email"],
+                "full_name": user_data["employee_name"],
+                "role": user_data["role"],
+                "created_at": user_data["created_at"].isoformat() if user_data.get("created_at") else None
+            })
+
+        return employees
+    except Exception as e:
+        logger.error(f"Failed to get employees: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
