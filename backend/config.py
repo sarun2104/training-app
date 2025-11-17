@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Learning Management System"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
-    SECRET_KEY: str
+    SECRET_KEY: str = "dev-secret-key-change-in-production"
 
     # FalkorDB
     FALKORDB_HOST: str = "localhost"
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "training_db"
 
     # JWT
-    JWT_SECRET_KEY: str
+    JWT_SECRET_KEY: str = "dev-jwt-secret-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -63,7 +63,9 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"
 
 
 # Global settings instance
