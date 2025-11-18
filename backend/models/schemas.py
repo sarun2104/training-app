@@ -65,7 +65,6 @@ class EmployeeResponse(BaseModel):
 # ============================================================================
 
 class TrackCreate(BaseModel):
-    track_id: str = Field(..., min_length=1, max_length=50)
     track_name: str = Field(..., min_length=1, max_length=255)
 
 
@@ -79,7 +78,6 @@ class TrackResponse(BaseModel):
 # ============================================================================
 
 class SubTrackCreate(BaseModel):
-    subtrack_id: str = Field(..., min_length=1, max_length=50)
     subtrack_name: str = Field(..., min_length=1, max_length=255)
     track_id: str = Field(..., min_length=1, max_length=50)
 

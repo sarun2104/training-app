@@ -20,30 +20,40 @@ export interface LoginResponse {
 
 // Track Types
 export interface Track {
-  track_id: number;
-  name: string;
-  description: string;
-  created_at?: string;
+  track_id: string;
+  track_name: string;
 }
 
 export interface CreateTrackRequest {
-  name: string;
-  description: string;
+  track_name: string;
+}
+
+export interface UpdateTrackRequest {
+  track_name: string;
 }
 
 // SubTrack Types
 export interface SubTrack {
-  subtrack_id: number;
-  name: string;
-  description: string;
-  track_id: number;
-  created_at?: string;
+  subtrack_id: string;
+  subtrack_name: string;
+  track_id?: string;
 }
 
 export interface CreateSubTrackRequest {
-  name: string;
-  description: string;
-  track_id: number;
+  subtrack_name: string;
+  track_id: string;
+}
+
+export interface UpdateSubTrackRequest {
+  subtrack_name: string;
+  track_id: string;
+}
+
+// Track Tree Types (for hierarchical display)
+export interface TrackWithSubtracks {
+  track_id: string;
+  track_name: string;
+  subtracks: SubTrack[];
 }
 
 // Course Types

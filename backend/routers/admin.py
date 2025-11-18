@@ -5,10 +5,11 @@ Endpoints for content management, assignments, and reporting
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 import logging
+import hashlib
 
 from backend.models.schemas import (
-    TrackCreate, TrackResponse,
-    SubTrackCreate, SubTrackResponse,
+    TrackCreate,
+    SubTrackCreate,
     CourseCreate, CourseResponse,
     LinkCreate, LinkResponse,
     QuestionCreate, QuestionWithAnswer,
@@ -24,40 +25,161 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def generate_id(name: str) -> str:
+    """Generate a unique ID using hashlib SHA256"""
+    return hashlib.sha256(name.encode('utf-8')).hexdigest()[:16]
+
+
 # ============================================================================
 # TRACK MANAGEMENT
 # ============================================================================
 
-@router.post("/tracks", response_model=TrackResponse)
+@router.post("/tracks")
 async def create_track(
     track: TrackCreate,
     current_user: dict = Depends(get_current_admin_user)
 ):
-    """Create a new Track"""
+    """Create a new Track with auto-generated ID"""
     falkor_db = get_falkor_db()
-    initializer = GraphInitializer(falkor_db)
 
     try:
-        initializer.create_track(track.track_id, track.track_name)
-        return TrackResponse(track_id=track.track_id, track_name=track.track_name)
+        # Generate ID from track name
+        track_id = generate_id(track.track_name)
+
+        # Check if track already exists
+        check_query = f"MATCH (t:Track {{track_id: '{track_id}'}}) RETURN t"
+        existing = falkor_db.execute_query(check_query)
+        if existing and len(existing) > 0:
+            raise HTTPException(status_code=400, detail="Track with this name already exists")
+
+        # Create track
+        query = f"""
+        MERGE (t:Track {{track_id: '{track_id}'}})
+        SET t.track_name = '{track.track_name}'
+        RETURN t
+        """
+        falkor_db.execute_query(query)
+
+        return {"track_id": track_id, "track_name": track.track_name}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to create track: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/tracks", response_model=List[TrackResponse])
+@router.put("/tracks/{track_id}")
+async def update_track(
+    track_id: str,
+    track: TrackCreate,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Update a Track and regenerate ID based on new name"""
+    falkor_db = get_falkor_db()
+
+    try:
+        # Generate new ID from new track name
+        new_track_id = generate_id(track.track_name)
+
+        # If ID changed, check for duplicates
+        if new_track_id != track_id:
+            check_query = f"MATCH (t:Track {{track_id: '{new_track_id}'}}) RETURN t"
+            existing = falkor_db.execute_query(check_query)
+            if existing and len(existing) > 0:
+                raise HTTPException(status_code=400, detail="Track with this name already exists")
+
+        # Update track: create new node with new ID, copy relationships, delete old node
+        if new_track_id != track_id:
+            query = f"""
+            MATCH (old:Track {{track_id: '{track_id}'}})
+            OPTIONAL MATCH (old)-[r:has_subtrack]->(st:SubTrack)
+            CREATE (new:Track {{track_id: '{new_track_id}', track_name: '{track.track_name}'}})
+            WITH old, new, COLLECT(st) as subtracks
+            FOREACH (st IN subtracks | CREATE (new)-[:has_subtrack]->(st))
+            DETACH DELETE old
+            RETURN new
+            """
+        else:
+            query = f"""
+            MATCH (t:Track {{track_id: '{track_id}'}})
+            SET t.track_name = '{track.track_name}'
+            RETURN t
+            """
+
+        falkor_db.execute_query(query)
+
+        return {"track_id": new_track_id, "track_name": track.track_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update track: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/tracks")
 async def get_all_tracks(current_user: dict = Depends(get_current_admin_user)):
     """Get all tracks"""
     falkor_db = get_falkor_db()
 
     try:
-        query = "MATCH (t:Track) RETURN t.track_id AS track_id, t.track_name AS track_name"
+        query = "MATCH (t:Track) RETURN t.track_id AS track_id, t.track_name AS track_name ORDER BY t.track_name"
         result = falkor_db.execute_query(query)
-        # Parse results (implementation depends on FalkorDB response format)
-        # This is a placeholder - adjust based on actual response
-        return []
+
+        tracks = []
+        if result and len(result) > 0:
+            for row in result:
+                tracks.append({
+                    "track_id": row[0],
+                    "track_name": row[1]
+                })
+
+        return tracks
     except Exception as e:
         logger.error(f"Failed to get tracks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/tracks-tree")
+async def get_tracks_tree(current_user: dict = Depends(get_current_admin_user)):
+    """Get all tracks with their subtracks in tree structure"""
+    falkor_db = get_falkor_db()
+
+    try:
+        # First, get all tracks
+        tracks_query = "MATCH (t:Track) RETURN t.track_id, t.track_name ORDER BY t.track_name"
+        tracks_result = falkor_db.execute_query(tracks_query)
+
+        tree = []
+        if tracks_result and len(tracks_result) > 0:
+            for track_row in tracks_result:
+                track_id = track_row[0]
+                track_name = track_row[1]
+
+                # Get subtracks for this track
+                subtracks_query = f"""
+                MATCH (t:Track {{track_id: '{track_id}'}})-[:has_subtrack]->(st:SubTrack)
+                RETURN st.subtrack_id, st.subtrack_name
+                ORDER BY st.subtrack_name
+                """
+                subtracks_result = falkor_db.execute_query(subtracks_query)
+
+                subtracks = []
+                if subtracks_result and len(subtracks_result) > 0:
+                    for st_row in subtracks_result:
+                        subtracks.append({
+                            "subtrack_id": st_row[0],
+                            "subtrack_name": st_row[1]
+                        })
+
+                tree.append({
+                    "track_id": track_id,
+                    "track_name": track_name,
+                    "subtracks": subtracks
+                })
+
+        return tree
+    except Exception as e:
+        logger.error(f"Failed to get tracks tree: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -65,44 +187,123 @@ async def get_all_tracks(current_user: dict = Depends(get_current_admin_user)):
 # SUBTRACK MANAGEMENT
 # ============================================================================
 
-@router.post("/subtracks", response_model=SubTrackResponse)
+@router.post("/subtracks")
 async def create_subtrack(
     subtrack: SubTrackCreate,
     current_user: dict = Depends(get_current_admin_user)
 ):
-    """Create a new SubTrack"""
+    """Create a new SubTrack with auto-generated ID"""
     falkor_db = get_falkor_db()
-    initializer = GraphInitializer(falkor_db)
 
     try:
-        initializer.create_subtrack(
-            subtrack.subtrack_id,
-            subtrack.subtrack_name,
-            subtrack.track_id
-        )
-        return SubTrackResponse(
-            subtrack_id=subtrack.subtrack_id,
-            subtrack_name=subtrack.subtrack_name,
-            track_id=subtrack.track_id
-        )
+        # Generate ID from subtrack name
+        subtrack_id = generate_id(subtrack.subtrack_name)
+
+        # Check if subtrack already exists
+        check_query = f"MATCH (st:SubTrack {{subtrack_id: '{subtrack_id}'}}) RETURN st"
+        existing = falkor_db.execute_query(check_query)
+        if existing and len(existing) > 0:
+            raise HTTPException(status_code=400, detail="SubTrack with this name already exists")
+
+        # Create subtrack and link to track
+        query = f"""
+        MATCH (t:Track {{track_id: '{subtrack.track_id}'}})
+        MERGE (st:SubTrack {{subtrack_id: '{subtrack_id}'}})
+        SET st.subtrack_name = '{subtrack.subtrack_name}'
+        MERGE (t)-[:has_subtrack]->(st)
+        RETURN st
+        """
+        falkor_db.execute_query(query)
+
+        return {
+            "subtrack_id": subtrack_id,
+            "subtrack_name": subtrack.subtrack_name,
+            "track_id": subtrack.track_id
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to create subtrack: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/subtracks", response_model=List[SubTrackResponse])
+@router.put("/subtracks/{subtrack_id}")
+async def update_subtrack(
+    subtrack_id: str,
+    subtrack: SubTrackCreate,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Update a SubTrack and regenerate ID based on new name"""
+    falkor_db = get_falkor_db()
+
+    try:
+        # Generate new ID from new subtrack name
+        new_subtrack_id = generate_id(subtrack.subtrack_name)
+
+        # If ID changed, check for duplicates
+        if new_subtrack_id != subtrack_id:
+            check_query = f"MATCH (st:SubTrack {{subtrack_id: '{new_subtrack_id}'}}) RETURN st"
+            existing = falkor_db.execute_query(check_query)
+            if existing and len(existing) > 0:
+                raise HTTPException(status_code=400, detail="SubTrack with this name already exists")
+
+        # Update subtrack: create new node with new ID, copy relationships, delete old node
+        if new_subtrack_id != subtrack_id:
+            query = f"""
+            MATCH (old:SubTrack {{subtrack_id: '{subtrack_id}'}})
+            MATCH (t:Track {{track_id: '{subtrack.track_id}'}})
+            OPTIONAL MATCH (old)-[r:has_course]->(c:Course)
+            CREATE (new:SubTrack {{subtrack_id: '{new_subtrack_id}', subtrack_name: '{subtrack.subtrack_name}'}})
+            CREATE (t)-[:has_subtrack]->(new)
+            WITH old, new, COLLECT(c) as courses
+            FOREACH (c IN courses | CREATE (new)-[:has_course]->(c))
+            DETACH DELETE old
+            RETURN new
+            """
+        else:
+            query = f"""
+            MATCH (st:SubTrack {{subtrack_id: '{subtrack_id}'}})
+            SET st.subtrack_name = '{subtrack.subtrack_name}'
+            RETURN st
+            """
+
+        falkor_db.execute_query(query)
+
+        return {
+            "subtrack_id": new_subtrack_id,
+            "subtrack_name": subtrack.subtrack_name,
+            "track_id": subtrack.track_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update subtrack: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/subtracks")
 async def get_all_subtracks(current_user: dict = Depends(get_current_admin_user)):
     """Get all subtracks"""
     falkor_db = get_falkor_db()
 
     try:
         query = """
-        MATCH (st:SubTrack)-[:has_subtrack]-(t:Track)
+        MATCH (t:Track)-[:has_subtrack]->(st:SubTrack)
         RETURN st.subtrack_id AS subtrack_id, st.subtrack_name AS subtrack_name, t.track_id AS track_id
+        ORDER BY st.subtrack_name
         """
         result = falkor_db.execute_query(query)
-        # Return empty list for now - will be populated as data is added
-        return []
+
+        subtracks = []
+        if result and len(result) > 0:
+            for row in result:
+                subtracks.append({
+                    "subtrack_id": row[0],
+                    "subtrack_name": row[1],
+                    "track_id": row[2]
+                })
+
+        return subtracks
     except Exception as e:
         logger.error(f"Failed to get subtracks: {e}")
         raise HTTPException(status_code=500, detail=str(e))

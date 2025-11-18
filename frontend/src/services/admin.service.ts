@@ -2,8 +2,11 @@ import { apiClient } from './api';
 import {
   Track,
   CreateTrackRequest,
+  UpdateTrackRequest,
   SubTrack,
   CreateSubTrackRequest,
+  UpdateSubTrackRequest,
+  TrackWithSubtracks,
   Course,
   CreateCourseRequest,
   Question,
@@ -22,14 +25,29 @@ export const adminService = {
     return response.data;
   },
 
+  async updateTrack(trackId: string, data: UpdateTrackRequest) {
+    const response = await apiClient.put(`/api/admin/tracks/${trackId}`, data);
+    return response.data;
+  },
+
   async getTracks(): Promise<Track[]> {
     const response = await apiClient.get<Track[]>('/api/admin/tracks');
+    return response.data;
+  },
+
+  async getTracksTree(): Promise<TrackWithSubtracks[]> {
+    const response = await apiClient.get<TrackWithSubtracks[]>('/api/admin/tracks-tree');
     return response.data;
   },
 
   // SubTrack Management
   async createSubTrack(data: CreateSubTrackRequest) {
     const response = await apiClient.post('/api/admin/subtracks', data);
+    return response.data;
+  },
+
+  async updateSubTrack(subtrackId: string, data: UpdateSubTrackRequest) {
+    const response = await apiClient.put(`/api/admin/subtracks/${subtrackId}`, data);
     return response.data;
   },
 

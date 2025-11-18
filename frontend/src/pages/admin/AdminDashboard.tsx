@@ -26,16 +26,17 @@ export const AdminDashboard: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const [tracks, subtracks, courses, employees] = await Promise.all([
-        adminService.getTracks(),
-        adminService.getSubTracks(),
+      const [tracksTree, courses, employees] = await Promise.all([
+        adminService.getTracksTree(),
         adminService.getCourses(),
         adminService.getEmployees(),
       ]);
 
+      const totalSubtracks = tracksTree.reduce((sum, track) => sum + track.subtracks.length, 0);
+
       setStats({
-        tracks: tracks.length,
-        subtracks: subtracks.length,
+        tracks: tracksTree.length,
+        subtracks: totalSubtracks,
         courses: courses.length,
         employees: Array.isArray(employees) ? employees.length : 0,
       });
@@ -48,20 +49,12 @@ export const AdminDashboard: React.FC = () => {
 
   const menuItems = [
     {
-      title: 'Tracks',
-      description: 'Manage learning tracks',
+      title: 'Tracks & SubTracks',
+      description: `Manage learning tracks (${stats.tracks}) and subtracks (${stats.subtracks})`,
       icon: FolderTree,
       link: '/admin/tracks',
       color: 'bg-blue-500',
-      count: stats.tracks,
-    },
-    {
-      title: 'SubTracks',
-      description: 'Manage learning subtracks',
-      icon: Layers,
-      link: '/admin/subtracks',
-      color: 'bg-purple-500',
-      count: stats.subtracks,
+      count: stats.tracks + stats.subtracks,
     },
     {
       title: 'Courses',

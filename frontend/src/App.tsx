@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Navbar } from './components/layout/Navbar';
 import { Login } from './pages/Login';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { TracksPage } from './pages/admin/TracksPage';
+import { TracksSubtracksPage } from './pages/admin/TracksSubtracksPage';
 import { CoursesPage } from './pages/admin/CoursesPage';
 import { EmployeesPage } from './pages/admin/EmployeesPage';
 import { EmployeeDashboard } from './pages/employee/EmployeeDashboard';
@@ -59,7 +59,7 @@ const AppRoutes: React.FC = () => {
         element={
           <PrivateRoute role="admin">
             <Navbar />
-            <TracksPage />
+            <TracksSubtracksPage />
           </PrivateRoute>
         }
       />
