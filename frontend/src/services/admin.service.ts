@@ -40,6 +40,11 @@ export const adminService = {
     return response.data;
   },
 
+  async getCompleteTree() {
+    const response = await apiClient.get('/api/admin/complete-tree');
+    return response.data;
+  },
+
   // SubTrack Management
   async createSubTrack(data: CreateSubTrackRequest) {
     const response = await apiClient.post('/api/admin/subtracks', data);
@@ -59,6 +64,16 @@ export const adminService = {
   // Course Management
   async createCourse(data: CreateCourseRequest) {
     const response = await apiClient.post('/api/admin/courses', data);
+    return response.data;
+  },
+
+  async updateCourse(courseId: string, data: { course_name: string }) {
+    const response = await apiClient.put(`/api/admin/courses/${courseId}`, data);
+    return response.data;
+  },
+
+  async addCourseToSubtrack(courseId: string, subtrackId: string) {
+    const response = await apiClient.post(`/api/admin/courses/${courseId}/subtracks/${subtrackId}`);
     return response.data;
   },
 

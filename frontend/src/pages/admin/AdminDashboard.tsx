@@ -7,6 +7,7 @@ import {
   BarChart,
   FolderTree,
   Layers,
+  Eye,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { adminService } from '@/services/admin.service';
@@ -48,6 +49,13 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const menuItems = [
+    {
+      title: 'Structure Overview',
+      description: 'View complete hierarchy of tracks, subtracks, and courses',
+      icon: Eye,
+      link: '/admin/tree-view',
+      color: 'bg-purple-500',
+    },
     {
       title: 'Tracks & SubTracks',
       description: `Manage learning tracks (${stats.tracks}) and subtracks (${stats.subtracks})`,

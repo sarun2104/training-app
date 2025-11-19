@@ -69,9 +69,9 @@ export interface Course {
 }
 
 export interface CreateCourseRequest {
-  title: string;
-  description: string;
-  subtrack_id: number;
+  course_name: string;
+  parent_id: string;
+  parent_type: 'track' | 'subtrack' | 'course';
 }
 
 // Study Link Types

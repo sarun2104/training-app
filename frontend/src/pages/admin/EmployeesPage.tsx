@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Users, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Users, UserPlus, ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,6 +9,7 @@ import { adminService } from '@/services/admin.service';
 import { User, Track, Course } from '@/types';
 
 export const EmployeesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<User[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -91,6 +93,16 @@ export const EmployeesPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-6">
+        <Button
+          variant="secondary"
+          onClick={() => navigate('/admin')}
+        >
+          <ArrowLeft size={20} className="mr-2" />
+          Back to Dashboard
+        </Button>
+      </div>
+
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Employees</h1>

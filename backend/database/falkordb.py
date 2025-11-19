@@ -45,7 +45,7 @@ class FalkorDB:
         try:
             # Use GRAPH.QUERY command for FalkorDB/RedisGraph
             if params:
-                # Build parameterized query
+                # Build parameterized query using CYPHER syntax
                 query = self._build_parameterized_query(query, params)
 
             result = self.client.execute_command("GRAPH.QUERY", self.graph_name, query)
@@ -55,16 +55,24 @@ class FalkorDB:
             raise
 
     def _build_parameterized_query(self, query: str, params: Dict[str, Any]) -> str:
-        """Build parameterized query (simple implementation)"""
-        # For production, use proper parameterization
-        # This is a simplified version for demonstration
+        """Build parameterized query using CYPHER parameter syntax"""
+        # Build parameter declaration: CYPHER param1="value1" param2="value2"
+        param_parts = []
         for key, value in params.items():
-            placeholder = f"${key}"
             if isinstance(value, str):
-                query = query.replace(placeholder, f"'{value}'")
+                # Escape double quotes in the value
+                escaped_value = value.replace('"', '\\"')
+                param_parts.append(f'{key}="{escaped_value}"')
+            elif isinstance(value, bool):
+                param_parts.append(f'{key}={str(value).lower()}')
+            elif value is None:
+                param_parts.append(f'{key}=null')
             else:
-                query = query.replace(placeholder, str(value))
-        return query
+                param_parts.append(f'{key}={value}')
+
+        # Prepend CYPHER declaration to the query
+        param_declaration = "CYPHER " + " ".join(param_parts)
+        return f"{param_declaration}\n{query}"
 
     def _parse_result(self, result: Any) -> List[Any]:
         """Parse FalkorDB query result"""

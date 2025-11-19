@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Navbar } from './components/layout/Navbar';
 import { Login } from './pages/Login';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { TreeViewPage } from './pages/admin/TreeViewPage';
 import { TracksSubtracksPage } from './pages/admin/TracksSubtracksPage';
 import { CoursesPage } from './pages/admin/CoursesPage';
 import { EmployeesPage } from './pages/admin/EmployeesPage';
@@ -51,6 +52,15 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute role="admin">
             <Navbar />
             <AdminDashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/tree-view"
+        element={
+          <PrivateRoute role="admin">
+            <Navbar />
+            <TreeViewPage />
           </PrivateRoute>
         }
       />

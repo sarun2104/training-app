@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, FolderTree, Edit2, ChevronRight, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, FolderTree, Edit2, ChevronRight, ChevronDown, ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -15,6 +16,7 @@ interface FormData {
 }
 
 export const TracksSubtracksPage: React.FC = () => {
+  const navigate = useNavigate();
   const [tracksTree, setTracksTree] = useState<TrackWithSubtracks[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -115,10 +117,20 @@ export const TracksSubtracksPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-6">
+        <Button
+          variant="secondary"
+          onClick={() => navigate('/admin')}
+        >
+          <ArrowLeft size={20} className="mr-2" />
+          Back to Dashboard
+        </Button>
+      </div>
+
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Tracks & SubTracks</h1>
-          <p className="text-gray-600 mt-2">Manage learning tracks and subtracks hierarchy</p>
+          <p className="text-gray-600 mt-2">Organize technical training paths: Foundational, GenAI, Data Engineering, and DevOps</p>
         </div>
         <Button onClick={() => openModal('create-track')}>
           <Plus size={20} className="mr-2" />

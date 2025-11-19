@@ -93,10 +93,14 @@ class SubTrackResponse(BaseModel):
 # ============================================================================
 
 class CourseCreate(BaseModel):
-    course_id: str = Field(..., min_length=1, max_length=50)
     course_name: str = Field(..., min_length=1, max_length=255)
     parent_type: Literal["track", "subtrack", "course"]
     parent_id: str = Field(..., min_length=1, max_length=50)
+    course_id: Optional[str] = None  # Auto-generated if not provided
+
+
+class CourseUpdate(BaseModel):
+    course_name: str = Field(..., min_length=1, max_length=255)
 
 
 class CourseResponse(BaseModel):
