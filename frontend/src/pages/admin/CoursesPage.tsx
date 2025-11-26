@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, Edit2, Tag, Search, Check, X, ArrowLeft } from 'lucide-react';
+import { Plus, BookOpen, Edit2, Tag, Search, Check, X, ArrowLeft, Link } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { SubtrackSelector } from '@/components/admin/SubtrackSelector';
+import { LinksModal } from '@/components/admin/LinksModal';
 import { adminService } from '@/services/admin.service';
 
 interface SubtrackInfo {
@@ -37,6 +38,7 @@ export const CoursesPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubtrackSelectorOpen, setIsSubtrackSelectorOpen] = useState(false);
   const [isEditSubtracksOpen, setIsEditSubtracksOpen] = useState(false);
+  const [isLinksModalOpen, setIsLinksModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<CourseWithSubtracks | null>(null);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [editCourseName, setEditCourseName] = useState('');
@@ -188,6 +190,11 @@ export const CoursesPage: React.FC = () => {
   const openEditSubtracks = (course: CourseWithSubtracks) => {
     setSelectedCourse(course);
     setIsEditSubtracksOpen(true);
+  };
+
+  const openLinksModal = (course: CourseWithSubtracks) => {
+    setSelectedCourse(course);
+    setIsLinksModalOpen(true);
   };
 
   return (
@@ -350,14 +357,24 @@ export const CoursesPage: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => openEditSubtracks(course)}
-                      >
-                        <Plus size={14} className="mr-1" />
-                        Add to SubTrack
-                      </Button>
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => openLinksModal(course)}
+                        >
+                          <Link size={14} className="mr-1" />
+                          Links
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => openEditSubtracks(course)}
+                        >
+                          <Plus size={14} className="mr-1" />
+                          Add to SubTrack
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -432,6 +449,19 @@ export const CoursesPage: React.FC = () => {
         selectedSubtracks={selectedCourse?.subtracks.map((st) => st.subtrack_id) || []}
         title={`Add "${selectedCourse?.course_name}" to SubTrack`}
       />
+
+      {/* Links Modal */}
+      {selectedCourse && (
+        <LinksModal
+          isOpen={isLinksModalOpen}
+          onClose={() => {
+            setIsLinksModalOpen(false);
+            setSelectedCourse(null);
+          }}
+          courseId={selectedCourse.course_id}
+          courseName={selectedCourse.course_name}
+        />
+      )}
     </div>
   );
 };

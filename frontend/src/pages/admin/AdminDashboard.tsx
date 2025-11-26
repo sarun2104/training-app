@@ -8,6 +8,7 @@ import {
   FolderTree,
   Layers,
   Eye,
+  Award,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { adminService } from '@/services/admin.service';
@@ -78,6 +79,13 @@ export const AdminDashboard: React.FC = () => {
       icon: FileQuestion,
       link: '/admin/questions',
       color: 'bg-yellow-500',
+    },
+    {
+      title: 'Capstone',
+      description: 'Manage capstone projects',
+      icon: Award,
+      link: '/admin/capstones',
+      color: 'bg-orange-500',
     },
     {
       title: 'Employees',

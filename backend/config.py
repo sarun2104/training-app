@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     FCM_SERVER_KEY: str = ""
 
     # Quiz
-    QUIZ_PASSING_SCORE: float = 70.0
+    QUIZ_PASSING_SCORE: float = 50.0
     REMINDER_DAYS_NOT_STARTED: int = 3
     REMINDER_DAYS_INCOMPLETE: int = 7
 

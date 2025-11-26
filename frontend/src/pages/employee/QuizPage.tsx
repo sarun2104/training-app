@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileQuestion, CheckCircle, XCircle } from 'lucide-react';
+import { FileQuestion, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { employeeService } from '@/services/employee.service';
@@ -10,10 +10,11 @@ export const QuizPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<{ [key: number]: string }>({});
+  const [answers, setAnswers] = useState<{ [key: string]: string | string[] }>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   useEffect(() => {
     if (courseId) {
@@ -23,7 +24,7 @@ export const QuizPage: React.FC = () => {
 
   const loadQuiz = async () => {
     try {
-      const data = await employeeService.getQuizQuestions(parseInt(courseId!));
+      const data = await employeeService.getQuizQuestions(courseId!);
       setQuestions(data.questions || []);
     } catch (error) {
       console.error('Failed to load quiz:', error);
@@ -32,15 +33,23 @@ export const QuizPage: React.FC = () => {
     }
   };
 
-  const handleAnswerChange = (questionId: number, option: string) => {
+  const handleAnswerChange = (questionId: string, option: string) => {
     setAnswers({ ...answers, [questionId]: option });
+  };
+
+  const handleCheckboxChange = (questionId: string, option: string) => {
+    const currentAnswers = (answers[questionId] as string[]) || [];
+    const newAnswers = currentAnswers.includes(option)
+      ? currentAnswers.filter(a => a !== option)
+      : [...currentAnswers, option];
+    setAnswers({ ...answers, [questionId]: newAnswers });
   };
 
   const handleSubmit = async () => {
     const quizAnswers: QuizAnswer[] = Object.entries(answers).map(
       ([questionId, selectedOption]) => ({
-        question_id: parseInt(questionId),
-        selected_option: selectedOption as 'A' | 'B' | 'C' | 'D',
+        question_id: questionId,
+        selected_answer: selectedOption as any,
       })
     );
 
@@ -51,13 +60,14 @@ export const QuizPage: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const quizResult = await employeeService.submitQuiz(parseInt(courseId!), {
+      const quizResult = await employeeService.submitQuiz(courseId!, {
         answers: quizAnswers,
       });
       setResult(quizResult);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit quiz:', error);
-      alert('Failed to submit quiz');
+      const errorMessage = error?.response?.data?.detail || error?.message || 'Failed to submit quiz';
+      alert(`Failed to submit quiz: ${errorMessage}`);
     } finally {
       setSubmitting(false);
     }
@@ -98,7 +108,7 @@ export const QuizPage: React.FC = () => {
               You scored {result.score}%
               {result.passed
                 ? ' - You have successfully completed this quiz!'
-                : ' - You need at least 70% to pass.'}
+                : ' - You need at least 50% to pass.'}
             </p>
 
             {result.correct_answers !== undefined && (
@@ -114,11 +124,12 @@ export const QuizPage: React.FC = () => {
             )}
 
             <div className="flex justify-center space-x-4">
-              <Button onClick={() => navigate(`/employee/courses/${courseId}`)}>
+              <Button variant="secondary" onClick={() => navigate(`/employee/courses/${courseId}`)}>
+                <ArrowLeft size={20} className="mr-2" />
                 Back to Course
               </Button>
               {!result.passed && (
-                <Button variant="secondary" onClick={handleRetry}>
+                <Button onClick={handleRetry}>
                   Try Again
                 </Button>
               )}
@@ -129,84 +140,181 @@ export const QuizPage: React.FC = () => {
     );
   }
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <button
-          onClick={() => navigate(`/employee/courses/${courseId}`)}
-          className="text-primary-600 hover:text-primary-700 font-medium"
-        >
-          ← Back to Course
-        </button>
-      </div>
+  const currentQuestion = questions[currentQuestionIndex];
+  const totalQuestions = questions.length;
+  const answeredCount = Object.keys(answers).length;
 
-      <Card>
-        <div className="mb-6">
-          <div className="flex items-center">
-            <FileQuestion className="h-8 w-8 text-primary-600 mr-3" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Course Quiz</h1>
-              <p className="text-gray-600">Answer all questions and submit</p>
+  const handleNext = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <FileQuestion className="h-6 w-6 text-primary-600 mr-2" />
+              <h1 className="text-xl font-bold text-gray-900">Course Assessment</h1>
+            </div>
+            <div className="text-sm text-gray-600">
+              {answeredCount} of {totalQuestions} answered
             </div>
           </div>
         </div>
+      </div>
 
-        {questions.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No questions available for this course.</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {questions.map((question, index) => (
-              <div key={question.question_id} className="border-b border-gray-200 pb-6">
-                <h3 className="font-medium text-gray-900 mb-4">
-                  {index + 1}. {question.question_text}
-                </h3>
+      {questions.length === 0 ? (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card>
+            <div className="text-center py-12">
+              <p className="text-gray-600">No questions available for this course.</p>
+              <Button variant="secondary" className="mt-4" onClick={() => navigate(`/employee/courses/${courseId}`)}>
+                <ArrowLeft size={20} className="mr-2" />
+                Back to Course
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Question Navigator */}
+            <div className="lg:col-span-1">
+              <Card>
+                <h3 className="font-semibold text-gray-900 mb-4">Questions</h3>
+                <div className="grid grid-cols-5 lg:grid-cols-4 gap-2">
+                  {questions.map((q, index) => (
+                    <button
+                      key={q.question_id}
+                      onClick={() => setCurrentQuestionIndex(index)}
+                      className={`w-10 h-10 rounded-lg font-medium text-sm transition-colors ${
+                        currentQuestionIndex === index
+                          ? 'bg-primary-600 text-white'
+                          : answers[q.question_id]
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded bg-green-100 mr-2"></div>
+                      <span className="text-gray-600">Answered</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded bg-gray-100 mr-2"></div>
+                      <span className="text-gray-600">Not Answered</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded bg-primary-600 mr-2"></div>
+                      <span className="text-gray-600">Current</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
 
-                <div className="space-y-2">
+            {/* Question Display */}
+            <div className="lg:col-span-3 space-y-6">
+              <Card>
+                <div className="mb-4">
+                  <div className="text-sm text-gray-600 mb-2">
+                    Question {currentQuestionIndex + 1} of {totalQuestions}
+                    {currentQuestion.multiple_answer_flag && (
+                      <span className="ml-2 text-primary-600 font-medium">(Select all that apply)</span>
+                    )}
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {currentQuestion.question_text}
+                  </h2>
+                </div>
+
+                <div className="space-y-3">
                   {['A', 'B', 'C', 'D'].map((option) => {
-                    const optionText = question[`option_${option.toLowerCase()}` as keyof Question];
+                    const optionText = currentQuestion[`option_${option.toLowerCase()}` as keyof Question];
+                    const isMultipleAnswer = currentQuestion.multiple_answer_flag;
+                    const currentAnswers = answers[currentQuestion.question_id];
+                    const isSelected = isMultipleAnswer
+                      ? Array.isArray(currentAnswers) && currentAnswers.includes(option)
+                      : currentAnswers === option;
+
                     return (
                       <label
                         key={option}
-                        className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                        className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-primary-600 bg-primary-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
                       >
                         <input
-                          type="radio"
-                          name={`question-${question.question_id}`}
+                          type={isMultipleAnswer ? "checkbox" : "radio"}
+                          name={!isMultipleAnswer ? `question-${currentQuestion.question_id}` : undefined}
                           value={option}
-                          checked={answers[question.question_id] === option}
-                          onChange={() => handleAnswerChange(question.question_id, option)}
-                          className="h-4 w-4 text-primary-600 focus:ring-primary-500"
+                          checked={isSelected}
+                          onChange={() => {
+                            if (isMultipleAnswer) {
+                              handleCheckboxChange(currentQuestion.question_id, option);
+                            } else {
+                              handleAnswerChange(currentQuestion.question_id, option);
+                            }
+                          }}
+                          className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500"
                         />
-                        <span className="ml-3 text-gray-900">
-                          {option}. {optionText}
+                        <span className="ml-3 text-gray-900 flex-1">
+                          <span className="font-medium">{option}.</span> {optionText}
                         </span>
                       </label>
                     );
                   })}
                 </div>
-              </div>
-            ))}
+              </Card>
 
-            <div className="flex justify-end space-x-4 pt-4">
-              <Button
-                variant="secondary"
-                onClick={() => navigate(`/employee/courses/${courseId}`)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                loading={submitting}
-                disabled={Object.keys(answers).length !== questions.length}
-              >
-                Submit Quiz
-              </Button>
+              {/* Navigation and Submit */}
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="secondary"
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
+                >
+                  Previous
+                </Button>
+
+                <div className="flex space-x-3">
+                  {currentQuestionIndex === questions.length - 1 ? (
+                    <Button
+                      onClick={handleSubmit}
+                      loading={submitting}
+                      disabled={answeredCount !== totalQuestions}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Submit Quiz
+                    </Button>
+                  ) : (
+                    <Button onClick={handleNext}>
+                      Next
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        )}
-      </Card>
+        </div>
+      )}
     </div>
   );
 };

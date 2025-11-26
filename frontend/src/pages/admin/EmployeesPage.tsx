@@ -1,94 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, UserPlus, ArrowLeft } from 'lucide-react';
+import { Users, UserPlus, ArrowLeft, Building2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
 import { adminService } from '@/services/admin.service';
-import { User, Track, Course } from '@/types';
+import { User } from '@/types';
+import { AssignCoursesModal } from '@/components/admin/AssignCoursesModal';
 
 export const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<User[]>([]);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
-  const [assignmentType, setAssignmentType] = useState<'track' | 'course'>('track');
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    full_name: '',
-  });
-  const [saving, setSaving] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
-    loadData();
+    loadEmployees();
   }, []);
 
-  const loadData = async () => {
+  const loadEmployees = async () => {
     try {
-      const [employeesData, tracksData, coursesData] = await Promise.all([
-        adminService.getEmployees(),
-        adminService.getTracks(),
-        adminService.getCourses(),
-      ]);
+      const employeesData = await adminService.getEmployees();
       setEmployees(Array.isArray(employeesData) ? employeesData : []);
-      setTracks(tracksData);
-      setCourses(coursesData);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('Failed to load employees:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-
-    try {
-      await adminService.createEmployee(formData);
-      setIsModalOpen(false);
-      setFormData({ username: '', email: '', password: '', full_name: '' });
-      loadData();
-    } catch (error: any) {
-      console.error('Failed to create employee:', error);
-      alert(error.response?.data?.detail || 'Failed to create employee');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleAssignment = async (itemId: number) => {
-    if (!selectedEmployee) return;
-
-    setSaving(true);
-    try {
-      if (assignmentType === 'track') {
-        await adminService.assignTrack({
-          user_id: selectedEmployee,
-          track_id: itemId,
-        });
-      } else {
-        await adminService.assignCourse({
-          user_id: selectedEmployee,
-          course_id: itemId,
-        });
-      }
-      setIsAssignModalOpen(false);
-      setSelectedEmployee(null);
-      alert('Assignment successful!');
-    } catch (error) {
-      console.error('Failed to assign:', error);
-      alert('Failed to assign');
-    } finally {
-      setSaving(false);
-    }
+  const handleAssignClick = (employee: User) => {
+    setSelectedEmployee({
+      id: String(employee.id),
+      name: employee.full_name,
+    });
+    setIsAssignModalOpen(true);
   };
 
   return (
@@ -106,12 +52,8 @@ export const EmployeesPage: React.FC = () => {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
-          <p className="text-gray-600 mt-2">Manage employees and assignments</p>
+          <p className="text-gray-600 mt-2">Manage employee course assignments</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} className="mr-2" />
-          Create Employee
-        </Button>
       </div>
 
       {loading ? (
@@ -124,14 +66,8 @@ export const EmployeesPage: React.FC = () => {
             <Users className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No employees</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by creating a new employee.
+              No employees found in the system.
             </p>
-            <div className="mt-6">
-              <Button onClick={() => setIsModalOpen(true)}>
-                <Plus size={20} className="mr-2" />
-                Create Employee
-              </Button>
-            </div>
           </div>
         </Card>
       ) : (
@@ -149,19 +85,22 @@ export const EmployeesPage: React.FC = () => {
                     </h3>
                     <p className="text-gray-600 text-sm">{employee.email}</p>
                     <p className="text-gray-500 text-xs mt-1">@{employee.username}</p>
+                    {employee.department && (
+                      <div className="flex items-center mt-2 text-gray-600">
+                        <Building2 size={14} className="mr-1" />
+                        <span className="text-xs">{employee.department}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="mt-4">
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => {
-                      setSelectedEmployee(employee.id);
-                      setIsAssignModalOpen(true);
-                    }}
+                    onClick={() => handleAssignClick(employee)}
                   >
                     <UserPlus size={16} className="mr-2" />
-                    Assign
+                    Assign Courses
                   </Button>
                 </div>
               </div>
@@ -170,138 +109,18 @@ export const EmployeesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Create Employee Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Create New Employee"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Full Name"
-            value={formData.full_name}
-            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-            placeholder="John Doe"
-            required
-          />
-          <Input
-            label="Username"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            placeholder="johndoe"
-            required
-          />
-          <Input
-            label="Email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="john@example.com"
-            required
-          />
-          <Input
-            label="Password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            placeholder="Secure password"
-            required
-          />
-          <div className="flex justify-end space-x-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" loading={saving}>
-              Create Employee
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Assignment Modal */}
-      <Modal
-        isOpen={isAssignModalOpen}
-        onClose={() => {
-          setIsAssignModalOpen(false);
-          setSelectedEmployee(null);
-        }}
-        title="Assign to Employee"
-      >
-        <div className="space-y-4">
-          <div className="flex space-x-2 border-b border-gray-200">
-            <button
-              className={`px-4 py-2 font-medium ${
-                assignmentType === 'track'
-                  ? 'border-b-2 border-primary-600 text-primary-600'
-                  : 'text-gray-600'
-              }`}
-              onClick={() => setAssignmentType('track')}
-            >
-              Tracks
-            </button>
-            <button
-              className={`px-4 py-2 font-medium ${
-                assignmentType === 'course'
-                  ? 'border-b-2 border-primary-600 text-primary-600'
-                  : 'text-gray-600'
-              }`}
-              onClick={() => setAssignmentType('course')}
-            >
-              Courses
-            </button>
-          </div>
-
-          <div className="max-h-96 overflow-y-auto space-y-2">
-            {assignmentType === 'track' ? (
-              tracks.map((track) => (
-                <div
-                  key={track.track_id}
-                  className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-medium">{track.name}</h4>
-                      <p className="text-sm text-gray-600">{track.description}</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleAssignment(track.track_id)}
-                      loading={saving}
-                    >
-                      Assign
-                    </Button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              courses.map((course) => (
-                <div
-                  key={course.course_id}
-                  className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-medium">{course.title}</h4>
-                      <p className="text-sm text-gray-600">{course.description}</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleAssignment(course.course_id)}
-                      loading={saving}
-                    >
-                      Assign
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </Modal>
+      {/* Assign Courses Modal */}
+      {selectedEmployee && (
+        <AssignCoursesModal
+          isOpen={isAssignModalOpen}
+          onClose={() => {
+            setIsAssignModalOpen(false);
+            setSelectedEmployee(null);
+          }}
+          employeeId={selectedEmployee.id}
+          employeeName={selectedEmployee.name}
+        />
+      )}
     </div>
   );
 };

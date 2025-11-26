@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/export_courses_links.py:*)",
+      "Bash(python scripts/create_mcqs_table.py:*)",
+      "Bash(python scripts/check_course_questions.py:*)",
+      "Bash(python scripts/comprehensive_quiz_fix.py:*)",
+      "Bash(python scripts/verify_quiz_flow.py:*)",
+      "Bash(python:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

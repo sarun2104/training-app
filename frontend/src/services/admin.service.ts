@@ -88,6 +88,26 @@ export const adminService = {
     return response.data;
   },
 
+  async getCourseLinks(courseId: string) {
+    const response = await apiClient.get(`/api/admin/courses/${courseId}/links`);
+    return response.data;
+  },
+
+  async addCourseLink(courseId: string, data: { link_label: string; link_url: string }) {
+    const response = await apiClient.post(`/api/admin/courses/${courseId}/links`, data);
+    return response.data;
+  },
+
+  async updateCourseLink(linkId: string, data: { link_label: string; link_url: string }) {
+    const response = await apiClient.put(`/api/admin/links/${linkId}`, data);
+    return response.data;
+  },
+
+  async deleteCourseLink(linkId: string) {
+    const response = await apiClient.delete(`/api/admin/links/${linkId}`);
+    return response.data;
+  },
+
   // Question Management
   async createQuestion(data: CreateQuestionRequest) {
     const response = await apiClient.post('/api/admin/questions', data);
@@ -96,6 +116,43 @@ export const adminService = {
 
   async assignQuestion(data: AssignQuestionRequest) {
     const response = await apiClient.post('/api/admin/assign-question', data);
+    return response.data;
+  },
+
+  // MCQ Management
+  async getCourseMCQs(courseId: string) {
+    const response = await apiClient.get(`/api/admin/courses/${courseId}/mcqs`);
+    return response.data;
+  },
+
+  async addMCQ(courseId: string, data: {
+    question_text: string;
+    option_a: string;
+    option_b: string;
+    option_c: string;
+    option_d: string;
+    correct_answers: string[];
+    multiple_answer_flag: boolean;
+  }) {
+    const response = await apiClient.post(`/api/admin/courses/${courseId}/mcqs`, data);
+    return response.data;
+  },
+
+  async updateMCQ(questionId: string, data: {
+    question_text: string;
+    option_a: string;
+    option_b: string;
+    option_c: string;
+    option_d: string;
+    correct_answers: string[];
+    multiple_answer_flag: boolean;
+  }) {
+    const response = await apiClient.put(`/api/admin/mcqs/${questionId}`, data);
+    return response.data;
+  },
+
+  async deleteMCQ(questionId: string) {
+    const response = await apiClient.delete(`/api/admin/mcqs/${questionId}`);
     return response.data;
   },
 
@@ -120,6 +177,23 @@ export const adminService = {
     return response.data;
   },
 
+  async getEmployeeAssignedCourses(employeeId: string) {
+    const response = await apiClient.get(`/api/admin/employees/${employeeId}/assigned-courses`);
+    return response.data;
+  },
+
+  async assignCourseToEmployee(employeeId: string, courseId: string, dueDate?: string) {
+    const response = await apiClient.post(`/api/admin/employees/${employeeId}/courses/${courseId}`, null, {
+      params: { due_date: dueDate }
+    });
+    return response.data;
+  },
+
+  async unassignCourseFromEmployee(employeeId: string, courseId: string) {
+    const response = await apiClient.delete(`/api/admin/employees/${employeeId}/courses/${courseId}`);
+    return response.data;
+  },
+
   // Reporting
   async getEmployeeProgress(userId: number) {
     const response = await apiClient.get(`/api/admin/employee-progress/${userId}`);
@@ -128,6 +202,17 @@ export const adminService = {
 
   async getCourseStats(courseId: number) {
     const response = await apiClient.get(`/api/admin/course-stats/${courseId}`);
+    return response.data;
+  },
+
+  // Capstones
+  async getCapstones() {
+    const response = await apiClient.get('/api/capstones');
+    return response.data;
+  },
+
+  async getCapstoneDetail(capstoneId: string) {
+    const response = await apiClient.get(`/api/capstones/${capstoneId}`);
     return response.data;
   },
 };

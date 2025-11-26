@@ -49,7 +49,7 @@ export const EmployeeCoursesPage: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
+          {courses.map((course: any) => (
             <Link key={course.course_id} to={`/employee/courses/${course.course_id}`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <div className="flex items-start">
@@ -58,36 +58,31 @@ export const EmployeeCoursesPage: React.FC = () => {
                   </div>
                   <div className="ml-4 flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {course.title}
+                      {course.course_name || course.title}
                     </h3>
-                    <p className="text-gray-600 mt-1 text-sm">{course.description}</p>
-                    {course.progress !== undefined && (
-                      <div className="mt-3">
-                        <div className="flex justify-between text-sm text-gray-600 mb-1">
-                          <span>Progress</span>
-                          <span>{course.progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-primary-600 h-2 rounded-full"
-                            style={{ width: `${course.progress}%` }}
-                          />
-                        </div>
+                    {course.due_date && (
+                      <div className="mt-2 text-xs text-orange-600 font-medium">
+                        Due: {new Date(course.due_date).toLocaleDateString()}
                       </div>
                     )}
-                    {course.status && (
-                      <div className="mt-2">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            course.status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {course.status}
-                        </span>
-                      </div>
-                    )}
+                    <div className="mt-2">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          course.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : course.status === 'in_progress'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : course.status === 'failed'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {course.status === 'in_progress' ? 'In Progress' :
+                         course.status === 'completed' ? 'Completed' :
+                         course.status === 'failed' ? 'Failed' :
+                         'Not Started'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Card>

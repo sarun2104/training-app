@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, ExternalLink, PlayCircle, FileQuestion } from 'lucide-react';
+import { BookOpen, ExternalLink, PlayCircle, FileQuestion, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { employeeService } from '@/services/employee.service';
@@ -21,7 +21,8 @@ export const CourseDetailPage: React.FC = () => {
 
   const loadCourse = async () => {
     try {
-      const data = await employeeService.getCourseDetails(parseInt(courseId!));
+      const data = await employeeService.getCourseDetails(courseId!);
+      console.log('Course details:', data);
       setCourse(data);
     } catch (error) {
       console.error('Failed to load course:', error);
@@ -33,7 +34,7 @@ export const CourseDetailPage: React.FC = () => {
   const handleStartCourse = async () => {
     setStarting(true);
     try {
-      await employeeService.startCourse(parseInt(courseId!));
+      await employeeService.startCourse(courseId!);
       alert('Course started! You can now access the study materials.');
       loadCourse();
     } catch (error) {
@@ -73,12 +74,13 @@ export const CourseDetailPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <button
-          onClick={() => navigate('/employee/courses')}
-          className="text-primary-600 hover:text-primary-700 font-medium"
+        <Button
+          variant="secondary"
+          onClick={() => navigate('/employee/dashboard')}
         >
-          ← Back to Courses
-        </button>
+          <ArrowLeft size={20} className="mr-2" />
+          Back to Dashboard
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -90,8 +92,10 @@ export const CourseDetailPage: React.FC = () => {
                   <BookOpen className="h-8 w-8 text-green-600" />
                 </div>
                 <div className="ml-4 flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
-                  <p className="text-gray-600 mt-2">{course.description}</p>
+                  <h1 className="text-2xl font-bold text-gray-900">{(course as any).course_name || course.title}</h1>
+                  {course.description && (
+                    <p className="text-gray-600 mt-2">{course.description}</p>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -129,7 +133,7 @@ export const CourseDetailPage: React.FC = () => {
           {/* Course Actions */}
           <Card title="Course Actions">
             <div className="space-y-3">
-              {course.status !== 'started' && (
+              {course.status === 'assigned' && (
                 <Button
                   className="w-full"
                   onClick={handleStartCourse}
@@ -144,9 +148,10 @@ export const CourseDetailPage: React.FC = () => {
                 className="w-full"
                 variant="secondary"
                 onClick={handleTakeQuiz}
+                disabled={course.status === 'completed'}
               >
                 <FileQuestion className="mr-2 h-5 w-5" />
-                Take Quiz
+                {course.status === 'completed' ? 'Quiz Completed' : course.status === 'failed' ? 'Retake Quiz' : 'Take Quiz'}
               </Button>
             </div>
           </Card>
@@ -178,10 +183,17 @@ export const CourseDetailPage: React.FC = () => {
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           course.status === 'completed'
                             ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                            : course.status === 'in_progress'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : course.status === 'failed'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
                         }`}
                       >
-                        {course.status}
+                        {course.status === 'in_progress' ? 'In Progress' :
+                         course.status === 'completed' ? 'Completed' :
+                         course.status === 'failed' ? 'Failed' :
+                         'Not Started'}
                       </span>
                     </div>
                   </div>

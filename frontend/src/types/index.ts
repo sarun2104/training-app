@@ -4,6 +4,7 @@ export interface User {
   username: string;
   email: string;
   full_name: string;
+  department?: string;
   role: 'admin' | 'employee';
   created_at?: string;
 }
@@ -66,12 +67,33 @@ export interface Course {
   links?: StudyLink[];
   progress?: number;
   status?: string;
+  due_date?: string;
 }
 
 export interface CreateCourseRequest {
   course_name: string;
   parent_id: string;
   parent_type: 'track' | 'subtrack' | 'course';
+}
+
+// Course with hierarchy for assignment
+export interface CourseWithHierarchy {
+  course_id: string;
+  course_name: string;
+  subtracks: {
+    subtrack_id: string;
+    subtrack_name: string;
+    track_id: string;
+    track_name: string;
+  }[];
+}
+
+export interface AssignedCourse {
+  course_id: string;
+  course_name: string;
+  subtrack_name?: string;
+  track_name?: string;
+  due_date?: string;
 }
 
 // Study Link Types
@@ -90,7 +112,7 @@ export interface CreateStudyLinkRequest {
 
 // Question Types
 export interface Question {
-  question_id: number;
+  question_id: string;
   question_text: string;
   option_a: string;
   option_b: string;
@@ -98,6 +120,7 @@ export interface Question {
   option_d: string;
   correct_option?: string;
   selected_option?: string;
+  multiple_answer_flag?: boolean;
 }
 
 export interface CreateQuestionRequest {
@@ -134,8 +157,8 @@ export interface AssignCourseRequest {
 
 // Quiz Types
 export interface QuizAnswer {
-  question_id: number;
-  selected_option: 'A' | 'B' | 'C' | 'D';
+  question_id: string;
+  selected_answer: 'A' | 'B' | 'C' | 'D' | ('A' | 'B' | 'C' | 'D')[];
 }
 
 export interface SubmitQuizRequest {
@@ -174,6 +197,72 @@ export interface EmployeeProfile {
   completed_courses: number;
   in_progress_courses: number;
   average_score?: number;
+}
+
+export interface EmployeeProfileDetails {
+  employee_id: string;
+  brief_profile: string | null;
+  primary_skills: string[];
+  secondary_skills: string[];
+  past_projects: string[];
+  certifications: string[];
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface EmployeeProfileUpdateRequest {
+  brief_profile?: string | null;
+  primary_skills?: string[];
+  secondary_skills?: string[];
+  past_projects?: string[];
+  certifications?: string[];
+}
+
+// Capstone Types
+export interface WeeklyPlanItem {
+  week: number;
+  title: string;
+  topics: string[];
+  tasks: string[];
+  deliverables: string[];
+}
+
+export interface Resource {
+  title: string;
+  url: string;
+  type: string;  // "dataset", "documentation", "tutorial", etc.
+}
+
+export interface FinalDeliverable {
+  title: string;
+  description: string;
+  requirements: string[];
+}
+
+export interface CapstoneGuidelines {
+  description: string;
+  objectives: string[];
+  weekly_plan: WeeklyPlanItem[];
+  final_deliverable: FinalDeliverable;
+  resources: Resource[];
+}
+
+export interface CapstoneListItem {
+  capstone_id: string;
+  capstone_name: string;
+  tags: string[];
+  duration_weeks: number;
+}
+
+export interface CapstoneDetail {
+  capstone_id: string;
+  capstone_name: string;
+  tags: string[];
+  duration_weeks: number;
+  dataset_link: string | null;
+  guidelines: CapstoneGuidelines;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // API Response Types

@@ -7,6 +7,8 @@ import {
   Notification,
   EmployeeProfile,
   CourseProgress,
+  EmployeeProfileDetails,
+  EmployeeProfileUpdateRequest,
 } from '@/types';
 
 export const employeeService = {
@@ -16,23 +18,23 @@ export const employeeService = {
     return response.data;
   },
 
-  async getCourseDetails(courseId: number): Promise<Course> {
+  async getCourseDetails(courseId: string): Promise<Course> {
     const response = await apiClient.get<Course>(`/api/employee/courses/${courseId}`);
     return response.data;
   },
 
-  async startCourse(courseId: number) {
+  async startCourse(courseId: string) {
     const response = await apiClient.post(`/api/employee/courses/${courseId}/start`);
     return response.data;
   },
 
   // Quiz
-  async getQuizQuestions(courseId: number): Promise<{ questions: Question[] }> {
+  async getQuizQuestions(courseId: string): Promise<{ questions: Question[] }> {
     const response = await apiClient.get(`/api/employee/courses/${courseId}/quiz`);
     return response.data;
   },
 
-  async submitQuiz(courseId: number, data: SubmitQuizRequest): Promise<QuizResult> {
+  async submitQuiz(courseId: string, data: SubmitQuizRequest): Promise<QuizResult> {
     const response = await apiClient.post<QuizResult>(
       `/api/employee/courses/${courseId}/submit-quiz`,
       data
@@ -51,6 +53,16 @@ export const employeeService = {
     return response.data;
   },
 
+  async getProfileDetails(): Promise<EmployeeProfileDetails> {
+    const response = await apiClient.get<EmployeeProfileDetails>('/api/employee/profile-details');
+    return response.data;
+  },
+
+  async updateProfileDetails(profileData: EmployeeProfileUpdateRequest): Promise<EmployeeProfileDetails> {
+    const response = await apiClient.put<EmployeeProfileDetails>('/api/employee/profile-details', profileData);
+    return response.data;
+  },
+
   // Notifications
   async getNotifications(): Promise<Notification[]> {
     const response = await apiClient.get<Notification[]>('/api/employee/notifications');
@@ -62,5 +74,10 @@ export const employeeService = {
       `/api/employee/notifications/${notificationId}/read`
     );
     return response.data;
+  },
+
+  async getUnreadNotificationCount(): Promise<number> {
+    const response = await apiClient.get<{ count: number }>('/api/employee/notifications/unread/count');
+    return response.data.count;
   },
 };

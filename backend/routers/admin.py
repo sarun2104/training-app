@@ -3,7 +3,7 @@ Admin Router
 Endpoints for content management, assignments, and reporting
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from typing import List, Optional
 import logging
 import hashlib
 
@@ -11,8 +11,9 @@ from backend.models.schemas import (
     TrackCreate,
     SubTrackCreate,
     CourseCreate, CourseUpdate, CourseResponse,
-    LinkCreate, LinkResponse,
+    LinkCreate, LinkAddRequest, LinkUpdateRequest, LinkResponse, LinkDetailResponse,
     QuestionCreate, QuestionWithAnswer,
+    MCQCreate, MCQUpdate, MCQResponse, MCQWithoutAnswers,
     AssignmentCreate, AssignmentResponse,
     EmployeeCreate, EmployeeResponse,
     EmployeeProgressReport, CourseStatistics
@@ -627,6 +628,192 @@ async def add_link_to_course(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/courses/{course_id}/links", response_model=List[LinkDetailResponse])
+async def get_course_links(
+    course_id: str,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Get all links for a course"""
+    falkor_db = get_falkor_db()
+
+    try:
+        query = """
+        MATCH (c:Course {course_id: $course_id})-[:has_links]->(l:Links)
+        RETURN l.link_id as link_id, l.link as link, l.link_label as link_label
+        ORDER BY l.link_label
+        """
+        params = {"course_id": course_id}
+        result = falkor_db.execute_query(query, params)
+
+        links = [
+            LinkDetailResponse(
+                link_id=row[0],
+                link=row[1],
+                link_label=row[2]
+            )
+            for row in result
+        ]
+        return links
+    except Exception as e:
+        logger.error(f"Failed to get course links: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/courses/{course_id}/links", response_model=LinkDetailResponse)
+async def add_course_link(
+    course_id: str,
+    link_data: LinkAddRequest,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Add a new link to a course"""
+    falkor_db = get_falkor_db()
+
+    try:
+        # Generate link ID from URL
+        link_id = generate_id(link_data.link_url)
+
+        # Check if link already exists
+        check_query = "MATCH (l:Links {link_id: $link_id}) RETURN l"
+        check_params = {"link_id": link_id}
+        existing = falkor_db.execute_query(check_query, check_params)
+
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="A link with this URL already exists"
+            )
+
+        # Create link and connect to course
+        query = """
+        MATCH (c:Course {course_id: $course_id})
+        CREATE (l:Links {link_id: $link_id, link: $link_url, link_label: $link_label})
+        CREATE (c)-[:has_links]->(l)
+        RETURN l.link_id as link_id, l.link as link, l.link_label as link_label
+        """
+        params = {
+            "course_id": course_id,
+            "link_id": link_id,
+            "link_url": link_data.link_url,
+            "link_label": link_data.link_label
+        }
+        result = falkor_db.execute_query(query, params)
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Course not found")
+
+        row = result[0]
+        return LinkDetailResponse(
+            link_id=row[0],
+            link=row[1],
+            link_label=row[2]
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to add link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/links/{link_id}", response_model=LinkDetailResponse)
+async def update_link(
+    link_id: str,
+    link_data: LinkUpdateRequest,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Update a link's label and URL"""
+    falkor_db = get_falkor_db()
+
+    try:
+        # Generate new link ID from new URL
+        new_link_id = generate_id(link_data.link_url)
+
+        # If URL changed, check if new URL already exists
+        if new_link_id != link_id:
+            check_query = "MATCH (l:Links {link_id: $new_link_id}) RETURN l"
+            check_params = {"new_link_id": new_link_id}
+            existing = falkor_db.execute_query(check_query, check_params)
+
+            if existing:
+                raise HTTPException(
+                    status_code=400,
+                    detail="A link with this URL already exists"
+                )
+
+            # Create new link node, copy relationships, delete old
+            query = """
+            MATCH (old:Links {link_id: $old_link_id})
+            OPTIONAL MATCH (c:Course)-[r:has_links]->(old)
+            CREATE (new:Links {link_id: $new_link_id, link: $link_url, link_label: $link_label})
+            WITH old, new, COLLECT(c) as courses
+            FOREACH (course IN courses | CREATE (course)-[:has_links]->(new))
+            DETACH DELETE old
+            RETURN new.link_id as link_id, new.link as link, new.link_label as link_label
+            """
+            params = {
+                "old_link_id": link_id,
+                "new_link_id": new_link_id,
+                "link_url": link_data.link_url,
+                "link_label": link_data.link_label
+            }
+        else:
+            # Just update the label
+            query = """
+            MATCH (l:Links {link_id: $link_id})
+            SET l.link_label = $link_label, l.link = $link_url
+            RETURN l.link_id as link_id, l.link as link, l.link_label as link_label
+            """
+            params = {
+                "link_id": link_id,
+                "link_url": link_data.link_url,
+                "link_label": link_data.link_label
+            }
+
+        result = falkor_db.execute_query(query, params)
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Link not found")
+
+        row = result[0]
+        return LinkDetailResponse(
+            link_id=row[0],
+            link=row[1],
+            link_label=row[2]
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/links/{link_id}")
+async def delete_link(
+    link_id: str,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Delete a link"""
+    falkor_db = get_falkor_db()
+
+    try:
+        query = """
+        MATCH (l:Links {link_id: $link_id})
+        DETACH DELETE l
+        RETURN count(l) as deleted_count
+        """
+        params = {"link_id": link_id}
+        result = falkor_db.execute_query(query, params)
+
+        if not result or result[0][0] == 0:
+            raise HTTPException(status_code=404, detail="Link not found")
+
+        return {"message": "Link deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============================================================================
 # QUESTION MANAGEMENT
 # ============================================================================
@@ -641,7 +828,7 @@ async def create_question(
 
     try:
         query = """
-        INSERT INTO question_master
+        INSERT INTO mcqs
         (question_id, question_text, option_a, option_b, option_c, option_d, correct_answer)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
@@ -676,6 +863,271 @@ async def assign_question_to_course(
         return {"message": f"Question {question_id} assigned to course {course_id}"}
     except Exception as e:
         logger.error(f"Failed to assign question: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# MCQ MANAGEMENT
+# ============================================================================
+
+@router.get("/courses/{course_id}/mcqs", response_model=List[MCQResponse])
+async def get_course_mcqs(
+    course_id: str,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Get all MCQs for a course"""
+    postgres_db = get_postgres_db()
+    falkor_db = get_falkor_db()
+
+    try:
+        # Get all question IDs linked to this course from FalkorDB
+        query = """
+        MATCH (c:Course {course_id: $course_id})-[:has_question]->(q:Question)
+        RETURN q.question_id as question_id
+        """
+        params = {"course_id": course_id}
+        result = falkor_db.execute_query(query, params)
+
+        if not result:
+            return []
+
+        question_ids = [row[0] for row in result]
+
+        # Get MCQ details from PostgreSQL
+        placeholders = ','.join(['%s'] * len(question_ids))
+        query = f"""
+        SELECT question_id, question_text, option_a, option_b, option_c, option_d,
+               correct_answers, multiple_answer_flag, created_at, updated_at
+        FROM mcqs
+        WHERE question_id IN ({placeholders})
+        ORDER BY created_at DESC
+        """
+        mcqs = postgres_db.execute_query(query, tuple(question_ids), fetch=True)
+
+        return [
+            MCQResponse(
+                question_id=mcq['question_id'],
+                question_text=mcq['question_text'],
+                option_a=mcq['option_a'],
+                option_b=mcq['option_b'],
+                option_c=mcq['option_c'],
+                option_d=mcq['option_d'],
+                correct_answers=mcq['correct_answers'],
+                multiple_answer_flag=mcq['multiple_answer_flag'],
+                created_at=str(mcq['created_at']) if mcq['created_at'] else None,
+                updated_at=str(mcq['updated_at']) if mcq['updated_at'] else None
+            )
+            for mcq in mcqs
+        ]
+    except Exception as e:
+        logger.error(f"Failed to get course MCQs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/courses/{course_id}/mcqs", response_model=MCQResponse)
+async def add_mcq_to_course(
+    course_id: str,
+    mcq: MCQCreate,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Add a new MCQ to a course"""
+    postgres_db = get_postgres_db()
+    falkor_db = get_falkor_db()
+
+    try:
+        # Generate question ID from question text
+        question_id = generate_id(mcq.question_text)
+
+        # Check if question already exists in PostgreSQL
+        check_query = "SELECT question_id FROM mcqs WHERE question_id = %s"
+        existing = postgres_db.execute_query(check_query, (question_id,), fetch=True)
+
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="A question with this text already exists"
+            )
+
+        # Validate multiple_answer_flag matches correct_answers count
+        if mcq.multiple_answer_flag and len(mcq.correct_answers) == 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Multiple answer flag is set but only one correct answer provided"
+            )
+        if not mcq.multiple_answer_flag and len(mcq.correct_answers) > 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Single answer question cannot have multiple correct answers"
+            )
+
+        # Insert MCQ into PostgreSQL
+        insert_query = """
+        INSERT INTO mcqs
+        (question_id, question_text, option_a, option_b, option_c, option_d,
+         correct_answers, multiple_answer_flag)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING question_id, question_text, option_a, option_b, option_c, option_d,
+                  correct_answers, multiple_answer_flag, created_at, updated_at
+        """
+        result = postgres_db.execute_query(
+            insert_query,
+            (
+                question_id,
+                mcq.question_text,
+                mcq.option_a,
+                mcq.option_b,
+                mcq.option_c,
+                mcq.option_d,
+                mcq.correct_answers,
+                mcq.multiple_answer_flag
+            ),
+            fetch=True
+        )
+
+        if not result:
+            raise HTTPException(status_code=500, detail="Failed to create MCQ")
+
+        mcq_data = result[0]
+
+        # Create link between Course and Question in FalkorDB
+        graph_query = """
+        MATCH (c:Course {course_id: $course_id})
+        CREATE (q:Question {question_id: $question_id})
+        CREATE (c)-[:has_question]->(q)
+        RETURN q
+        """
+        graph_params = {
+            "course_id": course_id,
+            "question_id": question_id
+        }
+        falkor_result = falkor_db.execute_query(graph_query, graph_params)
+
+        if not falkor_result:
+            raise HTTPException(status_code=404, detail="Course not found")
+
+        return MCQResponse(
+            question_id=mcq_data['question_id'],
+            question_text=mcq_data['question_text'],
+            option_a=mcq_data['option_a'],
+            option_b=mcq_data['option_b'],
+            option_c=mcq_data['option_c'],
+            option_d=mcq_data['option_d'],
+            correct_answers=mcq_data['correct_answers'],
+            multiple_answer_flag=mcq_data['multiple_answer_flag'],
+            created_at=str(mcq_data['created_at']) if mcq_data['created_at'] else None,
+            updated_at=str(mcq_data['updated_at']) if mcq_data['updated_at'] else None
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to add MCQ: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/mcqs/{question_id}", response_model=MCQResponse)
+async def update_mcq(
+    question_id: str,
+    mcq: MCQUpdate,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Update an MCQ"""
+    postgres_db = get_postgres_db()
+
+    try:
+        # Validate multiple_answer_flag matches correct_answers count
+        if mcq.multiple_answer_flag and len(mcq.correct_answers) == 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Multiple answer flag is set but only one correct answer provided"
+            )
+        if not mcq.multiple_answer_flag and len(mcq.correct_answers) > 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Single answer question cannot have multiple correct answers"
+            )
+
+        # Update MCQ in PostgreSQL
+        update_query = """
+        UPDATE mcqs
+        SET question_text = %s,
+            option_a = %s,
+            option_b = %s,
+            option_c = %s,
+            option_d = %s,
+            correct_answers = %s,
+            multiple_answer_flag = %s
+        WHERE question_id = %s
+        RETURNING question_id, question_text, option_a, option_b, option_c, option_d,
+                  correct_answers, multiple_answer_flag, created_at, updated_at
+        """
+        result = postgres_db.execute_query(
+            update_query,
+            (
+                mcq.question_text,
+                mcq.option_a,
+                mcq.option_b,
+                mcq.option_c,
+                mcq.option_d,
+                mcq.correct_answers,
+                mcq.multiple_answer_flag,
+                question_id
+            ),
+            fetch=True
+        )
+
+        if not result:
+            raise HTTPException(status_code=404, detail="MCQ not found")
+
+        mcq_data = result[0]
+
+        return MCQResponse(
+            question_id=mcq_data['question_id'],
+            question_text=mcq_data['question_text'],
+            option_a=mcq_data['option_a'],
+            option_b=mcq_data['option_b'],
+            option_c=mcq_data['option_c'],
+            option_d=mcq_data['option_d'],
+            correct_answers=mcq_data['correct_answers'],
+            multiple_answer_flag=mcq_data['multiple_answer_flag'],
+            created_at=str(mcq_data['created_at']) if mcq_data['created_at'] else None,
+            updated_at=str(mcq_data['updated_at']) if mcq_data['updated_at'] else None
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update MCQ: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/mcqs/{question_id}")
+async def delete_mcq(
+    question_id: str,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Delete an MCQ"""
+    postgres_db = get_postgres_db()
+    falkor_db = get_falkor_db()
+
+    try:
+        # Delete from PostgreSQL
+        delete_query = "DELETE FROM mcqs WHERE question_id = %s"
+        postgres_db.execute_query(delete_query, (question_id,))
+
+        # Delete from FalkorDB
+        graph_query = """
+        MATCH (q:Question {question_id: $question_id})
+        DETACH DELETE q
+        RETURN count(q) as deleted_count
+        """
+        graph_params = {"question_id": question_id}
+        result = falkor_db.execute_query(graph_query, graph_params)
+
+        if not result or result[0][0] == 0:
+            logger.warning(f"Question {question_id} not found in FalkorDB")
+
+        return {"message": "MCQ deleted successfully"}
+    except Exception as e:
+        logger.error(f"Failed to delete MCQ: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -730,7 +1182,7 @@ async def get_all_employees(current_user: dict = Depends(get_current_admin_user)
 
     try:
         query = """
-        SELECT employee_id, employee_name, email, role, created_at
+        SELECT employee_id, employee_name, email, department, role, created_at
         FROM employees
         ORDER BY created_at DESC
         """
@@ -744,6 +1196,7 @@ async def get_all_employees(current_user: dict = Depends(get_current_admin_user)
                 "username": user_data["email"].split("@")[0],
                 "email": user_data["email"],
                 "full_name": user_data["employee_name"],
+                "department": user_data.get("department"),
                 "role": user_data["role"],
                 "created_at": user_data["created_at"].isoformat() if user_data.get("created_at") else None
             })
@@ -751,6 +1204,159 @@ async def get_all_employees(current_user: dict = Depends(get_current_admin_user)
         return employees
     except Exception as e:
         logger.error(f"Failed to get employees: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/employees/{employee_id}/assigned-courses")
+async def get_employee_assigned_courses(
+    employee_id: str,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Get all courses assigned to an employee"""
+    falkor_db = get_falkor_db()
+
+    try:
+        # Get all courses assigned to this employee from FalkorDB (source of truth for assignments)
+        query = """
+        MATCH (e:Employee {employee_id: $employee_id})-[r:assigned_to]->(c:Course)
+        OPTIONAL MATCH (c)<-[:has_course]-(st:SubTrack)<-[:has_subtrack]-(t:Track)
+        RETURN c.course_id as course_id, c.course_name as course_name,
+               st.subtrack_name as subtrack_name, t.track_name as track_name,
+               r.due_date as due_date
+        ORDER BY t.track_name, st.subtrack_name, c.course_name
+        """
+        result = falkor_db.execute_query(query, {"employee_id": employee_id})
+
+        assigned_courses = []
+        for row in result:
+            assigned_courses.append({
+                "course_id": row[0],
+                "course_name": row[1],
+                "subtrack_name": row[2] if row[2] else None,
+                "track_name": row[3] if row[3] else None,
+                "due_date": row[4] if row[4] else None
+            })
+
+        return assigned_courses
+    except Exception as e:
+        logger.error(f"Failed to get assigned courses: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/employees/{employee_id}/courses/{course_id}")
+async def assign_course_to_employee(
+    employee_id: str,
+    course_id: str,
+    due_date: Optional[str] = None,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Assign a course to an employee with optional due date"""
+    postgres_db = get_postgres_db()
+    falkor_db = get_falkor_db()
+
+    try:
+        # First, ensure Employee node exists in FalkorDB (with only employee_id)
+        create_employee_query = """
+        MERGE (e:Employee {employee_id: $employee_id})
+        RETURN e
+        """
+        falkor_db.execute_query(create_employee_query, {"employee_id": employee_id})
+
+        # Create relationship between Employee and Course with due_date
+        if due_date:
+            assign_query = """
+            MATCH (e:Employee {employee_id: $employee_id})
+            MATCH (c:Course {course_id: $course_id})
+            MERGE (e)-[r:assigned_to]->(c)
+            SET r.due_date = $due_date
+            RETURN e, c
+            """
+            result = falkor_db.execute_query(assign_query, {
+                "employee_id": employee_id,
+                "course_id": course_id,
+                "due_date": due_date
+            })
+        else:
+            assign_query = """
+            MATCH (e:Employee {employee_id: $employee_id})
+            MATCH (c:Course {course_id: $course_id})
+            MERGE (e)-[:assigned_to]->(c)
+            RETURN e, c
+            """
+            result = falkor_db.execute_query(assign_query, {
+                "employee_id": employee_id,
+                "course_id": course_id
+            })
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Employee or Course not found")
+
+        # Create record in employee_course_progress table
+        progress_query = """
+        INSERT INTO employee_course_progress
+        (employee_id, course_id, assignment_type, assignment_id, status)
+        VALUES (%s, %s, 'course', %s, 'assigned')
+        ON CONFLICT (employee_id, course_id) DO NOTHING
+        """
+        postgres_db.execute_query(progress_query, (employee_id, course_id, course_id))
+
+        # Send notification to employee
+        _send_course_assignment_notification(employee_id, course_id, due_date)
+
+        return {
+            "message": "Course assigned successfully",
+            "employee_id": employee_id,
+            "course_id": course_id,
+            "due_date": due_date
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to assign course: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/employees/{employee_id}/courses/{course_id}")
+async def unassign_course_from_employee(
+    employee_id: str,
+    course_id: str,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """Unassign a course from an employee"""
+    postgres_db = get_postgres_db()
+    falkor_db = get_falkor_db()
+
+    try:
+        # Delete relationship between Employee and Course in FalkorDB
+        delete_query = """
+        MATCH (e:Employee {employee_id: $employee_id})-[r:assigned_to]->(c:Course {course_id: $course_id})
+        DELETE r
+        RETURN e, c
+        """
+        result = falkor_db.execute_query(delete_query, {
+            "employee_id": employee_id,
+            "course_id": course_id
+        })
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Assignment not found")
+
+        # Delete or update record in employee_course_progress table
+        progress_query = """
+        DELETE FROM employee_course_progress
+        WHERE employee_id = %s AND course_id = %s AND assignment_type = 'course'
+        """
+        postgres_db.execute_query(progress_query, (employee_id, course_id))
+
+        return {
+            "message": "Course unassigned successfully",
+            "employee_id": employee_id,
+            "course_id": course_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to unassign course: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -863,6 +1469,44 @@ def _send_assignment_notification(employee_id: str, assignment_id: str):
         ))
     except Exception as e:
         logger.error(f"Failed to send notification: {e}")
+
+
+def _send_course_assignment_notification(employee_id: str, course_id: str, due_date: Optional[str] = None):
+    """Send notification to employee when a course is assigned"""
+    postgres_db = get_postgres_db()
+    falkor_db = get_falkor_db()
+
+    try:
+        # Get course name from FalkorDB
+        course_query = "MATCH (c:Course {course_id: $course_id}) RETURN c.course_name AS course_name"
+        course_result = falkor_db.execute_query(course_query, {"course_id": course_id})
+
+        course_name = course_id  # Fallback to ID if name not found
+        if course_result and len(course_result) > 0 and course_result[0][0]:
+            course_name = course_result[0][0]
+
+        # Create notification message
+        title = "New Course Assigned"
+        if due_date:
+            message = f"You have been assigned to '{course_name}'. Due date: {due_date}"
+        else:
+            message = f"You have been assigned to '{course_name}'"
+
+        # Insert notification into PostgreSQL
+        notification_query = """
+        INSERT INTO notifications
+        (employee_id, notification_type, title, message, course_id)
+        VALUES (%s, 'course_assigned', %s, %s, %s)
+        """
+        postgres_db.execute_query(notification_query, (
+            employee_id,
+            title,
+            message,
+            course_id
+        ))
+        logger.info(f"Notification sent to employee {employee_id} for course {course_name}")
+    except Exception as e:
+        logger.error(f"Failed to send course assignment notification: {e}")
 
 
 # ============================================================================

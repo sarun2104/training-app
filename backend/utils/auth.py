@@ -89,6 +89,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     # Transform to match frontend expectations
     return {
         "id": user_data["employee_id"],
+        "employee_id": user_data["employee_id"],  # Add for backend compatibility
         "username": user_data["email"].split("@")[0],  # Use email prefix as username
         "email": user_data["email"],
         "full_name": user_data["employee_name"],

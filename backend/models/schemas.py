@@ -2,7 +2,7 @@
 Pydantic models for request/response validation
 """
 from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Union
 from datetime import datetime
 from decimal import Decimal
 
@@ -53,6 +53,7 @@ class EmployeeResponse(BaseModel):
     username: str
     email: EmailStr
     full_name: str
+    department: Optional[str] = None
     role: Literal["admin", "employee"]
     created_at: Optional[str] = None
 
@@ -109,8 +110,11 @@ class CourseResponse(BaseModel):
 
 
 class CourseDetail(CourseResponse):
-    links: List[str] = []
+    links: List[dict] = []
     questions: List[str] = []
+    status: Optional[Literal["assigned", "in_progress", "completed", "failed"]] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
 
 
 # ============================================================================
@@ -123,9 +127,25 @@ class LinkCreate(BaseModel):
     course_id: str = Field(..., min_length=1, max_length=50)
 
 
+class LinkAddRequest(BaseModel):
+    link_label: str = Field(..., min_length=1, max_length=255)
+    link_url: str = Field(..., min_length=1)
+
+
+class LinkUpdateRequest(BaseModel):
+    link_label: str = Field(..., min_length=1, max_length=255)
+    link_url: str = Field(..., min_length=1)
+
+
 class LinkResponse(BaseModel):
     link_id: str
     link_url: str
+
+
+class LinkDetailResponse(BaseModel):
+    link_id: str
+    link: str
+    link_label: str
 
 
 # ============================================================================
@@ -162,6 +182,59 @@ class QuestionWithAnswer(QuestionResponse):
 
 
 # ============================================================================
+# MCQ MODELS
+# ============================================================================
+
+class MCQCreate(BaseModel):
+    question_text: str = Field(..., min_length=1)
+    option_a: str = Field(..., min_length=1)
+    option_b: str = Field(..., min_length=1)
+    option_c: str = Field(..., min_length=1)
+    option_d: str = Field(..., min_length=1)
+    correct_answers: List[Literal["A", "B", "C", "D"]] = Field(..., min_items=1, max_items=4)
+    multiple_answer_flag: bool = False
+
+
+class MCQUpdate(BaseModel):
+    question_text: str = Field(..., min_length=1)
+    option_a: str = Field(..., min_length=1)
+    option_b: str = Field(..., min_length=1)
+    option_c: str = Field(..., min_length=1)
+    option_d: str = Field(..., min_length=1)
+    correct_answers: List[Literal["A", "B", "C", "D"]] = Field(..., min_items=1, max_items=4)
+    multiple_answer_flag: bool = False
+
+
+class MCQResponse(BaseModel):
+    question_id: str
+    question_text: str
+    option_a: str
+    option_b: str
+    option_c: str
+    option_d: str
+    correct_answers: List[str]
+    multiple_answer_flag: bool
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class MCQWithoutAnswers(BaseModel):
+    question_id: str
+    question_text: str
+    option_a: str
+    option_b: str
+    option_c: str
+    option_d: str
+    multiple_answer_flag: bool
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================================
 # ASSIGNMENT MODELS
 # ============================================================================
 
@@ -184,11 +257,10 @@ class AssignmentResponse(BaseModel):
 
 class QuizAnswer(BaseModel):
     question_id: str
-    selected_answer: Literal["A", "B", "C", "D"]
+    selected_answer: Union[Literal["A", "B", "C", "D"], List[Literal["A", "B", "C", "D"]]]
 
 
 class QuizSubmission(BaseModel):
-    course_id: str
     answers: List[QuizAnswer]
 
 
@@ -222,6 +294,7 @@ class CourseProgress(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     time_taken_minutes: Optional[int] = None
+    due_date: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -271,6 +344,90 @@ class NotificationResponse(BaseModel):
     course_id: Optional[str] = None
     is_read: bool
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================================
+# EMPLOYEE PROFILE MODELS
+# ============================================================================
+
+class EmployeeProfileUpdate(BaseModel):
+    brief_profile: Optional[str] = None
+    primary_skills: Optional[List[str]] = None
+    secondary_skills: Optional[List[str]] = None
+    past_projects: Optional[List[str]] = None
+    certifications: Optional[List[str]] = None
+
+
+class EmployeeProfileResponse(BaseModel):
+    employee_id: str
+    brief_profile: Optional[str] = None
+    primary_skills: List[str] = []
+    secondary_skills: List[str] = []
+    past_projects: List[str] = []
+    certifications: List[str] = []
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================================
+# CAPSTONE MODELS
+# ============================================================================
+
+class WeeklyPlanItem(BaseModel):
+    week: int
+    title: str
+    topics: List[str]
+    tasks: List[str]
+    deliverables: List[str]
+
+
+class Resource(BaseModel):
+    title: str
+    url: str
+    type: str  # "dataset", "documentation", "tutorial", etc.
+
+
+class FinalDeliverable(BaseModel):
+    title: str
+    description: str
+    requirements: List[str]
+
+
+class CapstoneGuidelines(BaseModel):
+    description: str
+    objectives: List[str]
+    weekly_plan: List[WeeklyPlanItem]
+    final_deliverable: FinalDeliverable
+    resources: List[Resource]
+
+
+class CapstoneListItem(BaseModel):
+    """Capstone summary for list view"""
+    capstone_id: str
+    capstone_name: str
+    tags: List[str]
+    duration_weeks: int
+
+    class Config:
+        from_attributes = True
+
+
+class CapstoneDetail(BaseModel):
+    """Full capstone details including guidelines"""
+    capstone_id: str
+    capstone_name: str
+    tags: List[str]
+    duration_weeks: int
+    dataset_link: Optional[str] = None
+    guidelines: CapstoneGuidelines
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

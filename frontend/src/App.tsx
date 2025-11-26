@@ -7,11 +7,16 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { TreeViewPage } from './pages/admin/TreeViewPage';
 import { TracksSubtracksPage } from './pages/admin/TracksSubtracksPage';
 import { CoursesPage } from './pages/admin/CoursesPage';
+import { QuestionsPage } from './pages/admin/QuestionsPage';
+import { CourseQuestionsPage } from './pages/admin/CourseQuestionsPage';
+import { CapstoneListPage } from './pages/admin/CapstoneListPage';
+import { CapstoneDetailPage } from './pages/admin/CapstoneDetailPage';
 import { EmployeesPage } from './pages/admin/EmployeesPage';
 import { EmployeeDashboard } from './pages/employee/EmployeeDashboard';
 import { EmployeeCoursesPage } from './pages/employee/CoursesPage';
 import { CourseDetailPage } from './pages/employee/CourseDetailPage';
 import { QuizPage } from './pages/employee/QuizPage';
+import { EmployeeProfilePage } from './pages/employee/EmployeeProfilePage';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; role?: string }> = ({
   children,
@@ -83,6 +88,42 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/admin/questions"
+        element={
+          <PrivateRoute role="admin">
+            <Navbar />
+            <QuestionsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/questions/:courseId"
+        element={
+          <PrivateRoute role="admin">
+            <Navbar />
+            <CourseQuestionsPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/capstones"
+        element={
+          <PrivateRoute role="admin">
+            <Navbar />
+            <CapstoneListPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/capstones/:capstoneId"
+        element={
+          <PrivateRoute role="admin">
+            <Navbar />
+            <CapstoneDetailPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
         path="/admin/employees"
         element={
           <PrivateRoute role="admin">
@@ -99,6 +140,24 @@ const AppRoutes: React.FC = () => {
           <PrivateRoute role="employee">
             <Navbar />
             <EmployeeDashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/employee/dashboard"
+        element={
+          <PrivateRoute role="employee">
+            <Navbar />
+            <EmployeeDashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/employee/profile"
+        element={
+          <PrivateRoute role="employee">
+            <Navbar />
+            <EmployeeProfilePage />
           </PrivateRoute>
         }
       />

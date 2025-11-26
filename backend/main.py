@@ -8,7 +8,7 @@ import logging
 
 from backend.config import settings
 from backend.database import postgres_db, falkor_db
-from backend.routers import auth, admin, employee
+from backend.routers import auth, admin, employee, capstones
 
 # Configure logging
 logging.basicConfig(
@@ -96,6 +96,7 @@ async def health_check():
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(employee.router, prefix="/api/employee", tags=["Employee"])
+app.include_router(capstones.router)
 
 
 if __name__ == "__main__":
