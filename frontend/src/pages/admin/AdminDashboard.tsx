@@ -9,6 +9,9 @@ import {
   Layers,
   Eye,
   Award,
+  ArrowRight,
+  Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { adminService } from '@/services/admin.service';
@@ -55,14 +58,16 @@ export const AdminDashboard: React.FC = () => {
       description: 'View complete hierarchy of tracks, subtracks, and courses',
       icon: Eye,
       link: '/admin/tree-view',
-      color: 'bg-purple-500',
+      gradient: 'from-violet-500 to-purple-600',
+      bgLight: 'bg-violet-50',
     },
     {
       title: 'Tracks & SubTracks',
-      description: `Manage learning tracks (${stats.tracks}) and subtracks (${stats.subtracks})`,
+      description: `Manage learning tracks and subtracks`,
       icon: FolderTree,
       link: '/admin/tracks',
-      color: 'bg-blue-500',
+      gradient: 'from-blue-500 to-cyan-500',
+      bgLight: 'bg-blue-50',
       count: stats.tracks + stats.subtracks,
     },
     {
@@ -70,7 +75,8 @@ export const AdminDashboard: React.FC = () => {
       description: 'Manage courses and content',
       icon: BookOpen,
       link: '/admin/courses',
-      color: 'bg-green-500',
+      gradient: 'from-emerald-500 to-teal-500',
+      bgLight: 'bg-emerald-50',
       count: stats.courses,
     },
     {
@@ -78,62 +84,149 @@ export const AdminDashboard: React.FC = () => {
       description: 'Manage quiz questions',
       icon: FileQuestion,
       link: '/admin/questions',
-      color: 'bg-yellow-500',
+      gradient: 'from-amber-500 to-orange-500',
+      bgLight: 'bg-amber-50',
     },
     {
-      title: 'Capstone',
+      title: 'Capstone Projects',
       description: 'Manage capstone projects',
       icon: Award,
       link: '/admin/capstones',
-      color: 'bg-orange-500',
+      gradient: 'from-rose-500 to-pink-500',
+      bgLight: 'bg-rose-50',
     },
     {
       title: 'Employees',
-      description: 'Manage employees',
+      description: 'Manage employees and assignments',
       icon: Users,
       link: '/admin/employees',
-      color: 'bg-red-500',
+      gradient: 'from-indigo-500 to-blue-500',
+      bgLight: 'bg-indigo-50',
       count: stats.employees,
     },
     {
-      title: 'Reports',
-      description: 'View analytics and reports',
+      title: 'Reports & Analytics',
+      description: 'View insights and analytics',
       icon: BarChart,
       link: '/admin/reports',
-      color: 'bg-indigo-500',
+      gradient: 'from-fuchsia-500 to-purple-500',
+      bgLight: 'bg-fuchsia-50',
     },
   ];
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-2">Manage your learning management system</p>
-      </div>
+  const statCards = [
+    { label: 'Total Tracks', value: stats.tracks, icon: Layers, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Total Courses', value: stats.courses, icon: BookOpen, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Employees', value: stats.employees, icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+  ];
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {menuItems.map((item) => (
-          <Link key={item.title} to={item.link}>
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <div className="flex items-start">
-                <div className={`p-3 rounded-lg ${item.color}`}>
-                  <item.icon className="h-6 w-6 text-white" />
+  return (
+    <div className="min-h-screen bg-[#fbfbfd]">
+      <div className="max-w-7xl mx-auto px-5 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="mb-8 animate-slide-up">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-apple">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-caption font-medium text-primary-600 uppercase tracking-wide">
+              Admin Dashboard
+            </span>
+          </div>
+          <h1 className="text-headline text-apple-gray-6 mb-2">
+            Welcome back
+          </h1>
+          <p className="text-body-large text-apple-gray-4 max-w-2xl">
+            Manage your learning platform with ease. Create courses, track progress, and empower your team.
+          </p>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+          {statCards.map((stat, index) => (
+            <Card 
+              key={stat.label} 
+              variant="glass" 
+              padding="none"
+              className="animate-slide-up"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className="p-5 flex items-center gap-4">
+                <div className={`p-3 ${stat.bg} rounded-apple`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
                 </div>
-                <div className="ml-4 flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center justify-between">
-                    {item.title}
-                    {item.count !== undefined && (
-                      <span className="text-sm font-normal text-gray-500">
-                        {loading ? '...' : item.count}
-                      </span>
+                <div>
+                  <p className="text-mini font-medium text-apple-gray-4 uppercase tracking-wide">
+                    {stat.label}
+                  </p>
+                  <p className="text-title-2 text-apple-gray-6">
+                    {loading ? (
+                      <span className="inline-block w-10 h-6 bg-apple-gray-2 rounded animate-pulse" />
+                    ) : (
+                      stat.value
                     )}
-                  </h3>
-                  <p className="text-gray-600 mt-1">{item.description}</p>
+                  </p>
+                </div>
+                <div className="ml-auto">
+                  <TrendingUp className="h-4 w-4 text-apple-green" />
                 </div>
               </div>
             </Card>
-          </Link>
-        ))}
+          ))}
+        </div>
+
+        {/* Quick Actions Label */}
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-title-1 text-apple-gray-6">Quick Actions</h2>
+        </div>
+
+        {/* Menu Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {menuItems.map((item, index) => (
+            <Link 
+              key={item.title} 
+              to={item.link}
+              className="animate-slide-up"
+              style={{ animationDelay: `${(index + 3) * 50}ms` }}
+            >
+              <Card 
+                variant="default" 
+                hover 
+                padding="none"
+                className="h-full group"
+              >
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`p-3 bg-gradient-to-br ${item.gradient} rounded-apple shadow-apple`}>
+                      <item.icon className="h-6 w-6 text-white" />
+                    </div>
+                    {item.count !== undefined && (
+                      <span className="px-2.5 py-1 bg-apple-gray-1 rounded-full text-caption font-semibold text-apple-gray-5">
+                        {loading ? '...' : item.count}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-title-3 font-semibold text-apple-gray-6 mb-1 flex items-center gap-2">
+                    {item.title}
+                    <ArrowRight 
+                      className="h-4 w-4 text-apple-gray-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" 
+                    />
+                  </h3>
+                  <p className="text-body text-apple-gray-4 line-clamp-2">
+                    {item.description}
+                  </p>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+
+        {/* Footer hint */}
+        <div className="mt-10 text-center">
+          <p className="text-caption text-apple-gray-4">
+            Need help? Check out the documentation or contact support.
+          </p>
+        </div>
       </div>
     </div>
   );

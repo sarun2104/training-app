@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, Edit2, Tag, Search, Check, X, ArrowLeft, Link } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import { Plus, BookOpen, Edit2, Tag, Search, Check, X, ArrowLeft, Link, MoreHorizontal } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { SubtrackSelector } from '@/components/admin/SubtrackSelector';
 import { LinksModal } from '@/components/admin/LinksModal';
 import { adminService } from '@/services/admin.service';
@@ -61,7 +61,6 @@ export const CoursesPage: React.FC = () => {
       setTracksTree(tracksData);
     } catch (error) {
       console.error('Failed to load data:', error);
-      alert('Failed to load courses');
     } finally {
       setLoading(false);
     }
@@ -75,15 +74,12 @@ export const CoursesPage: React.FC = () => {
 
     const query = searchQuery.toLowerCase();
     return courses.filter((course) => {
-      // Search in course name
       if (course.course_name.toLowerCase().includes(query)) {
         return true;
       }
-      // Search in subtrack names
       if (course.subtracks.some(st => st.subtrack_name.toLowerCase().includes(query))) {
         return true;
       }
-      // Search in track names
       if (course.subtracks.some(st => st.track_name.toLowerCase().includes(query))) {
         return true;
       }
@@ -109,7 +105,6 @@ export const CoursesPage: React.FC = () => {
 
   const handleCreateCourse = async (subtrackId: string) => {
     if (!formData.course_name.trim()) {
-      alert('Please enter a course name');
       return;
     }
 
@@ -126,8 +121,6 @@ export const CoursesPage: React.FC = () => {
       loadData();
     } catch (error: any) {
       console.error('Failed to create course:', error);
-      const errorMessage = error.response?.data?.detail || 'Failed to create course';
-      alert(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -144,8 +137,6 @@ export const CoursesPage: React.FC = () => {
       loadData();
     } catch (error: any) {
       console.error('Failed to add course to subtrack:', error);
-      const errorMessage = error.response?.data?.detail || 'Failed to add course to subtrack';
-      alert(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -163,7 +154,6 @@ export const CoursesPage: React.FC = () => {
 
   const saveCourseName = async (courseId: string) => {
     if (!editCourseName.trim()) {
-      alert('Course name cannot be empty');
       return;
     }
 
@@ -175,8 +165,6 @@ export const CoursesPage: React.FC = () => {
       loadData();
     } catch (error: any) {
       console.error('Failed to update course:', error);
-      const errorMessage = error.response?.data?.detail || 'Failed to update course';
-      alert(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -198,180 +186,195 @@ export const CoursesPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-8 animate-fade-in">
+      {/* Back Button */}
       <div className="mb-6">
         <Button
-          variant="secondary"
+          variant="ghost"
           onClick={() => navigate('/admin')}
+          className="group"
         >
-          <ArrowLeft size={20} className="mr-2" />
+          <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
           Back to Dashboard
         </Button>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Courses</h1>
-          <p className="text-gray-600 mt-2">
-            Manage courses and assign them to multiple subtracks
-          </p>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
+        <div className="animate-slide-up">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-11 h-11 rounded-apple-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-title-1 font-semibold text-apple-gray-6">Courses</h1>
+              <p className="text-body text-apple-gray-4">
+                {courses.length} course{courses.length !== 1 ? 's' : ''} available
+              </p>
+            </div>
+          </div>
         </div>
-        <Button onClick={openCreateModal}>
-          <Plus size={20} className="mr-2" />
-          Create Course
-        </Button>
+        <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <Button onClick={openCreateModal}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Course
+          </Button>
+        </div>
       </div>
 
       {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            placeholder="Search courses by name, track, or subtrack..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <Input
+          variant="filled"
+          icon={<Search className="w-5 h-5" />}
+          placeholder="Search courses by name, track, or subtrack..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="min-h-[40vh] flex items-center justify-center">
+          <div className="text-center">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 rounded-full border-4 border-apple-gray-2"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-apple-blue border-t-transparent animate-spin"></div>
+            </div>
+            <p className="text-apple-gray-4 text-body">Loading courses...</p>
+          </div>
         </div>
       ) : courses.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No courses</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by creating a new course.
-            </p>
-            <div className="mt-6">
-              <Button onClick={openCreateModal}>
-                <Plus size={20} className="mr-2" />
-                Create Course
-              </Button>
+        <Card variant="elevated" className="animate-scale-in">
+          <div className="text-center py-16">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <BookOpen className="w-10 h-10 text-gray-400" />
             </div>
+            <h3 className="text-title-1 font-semibold text-apple-gray-6 mb-2">No courses yet</h3>
+            <p className="text-body text-apple-gray-4 mb-6">Get started by creating your first course.</p>
+            <Button onClick={openCreateModal}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Course
+            </Button>
           </div>
         </Card>
       ) : filteredCourses.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <Search className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No courses found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              No courses match your search query "{searchQuery}"
-            </p>
+        <Card variant="elevated" className="animate-scale-in">
+          <div className="text-center py-16">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <Search className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-title-1 font-semibold text-apple-gray-6 mb-2">No results found</h3>
+            <p className="text-body text-apple-gray-4">No courses match "{searchQuery}"</p>
           </div>
         </Card>
       ) : (
-        <Card>
+        <Card variant="elevated" className="overflow-hidden animate-slide-up" style={{ animationDelay: '0.15s' }}>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-apple-gray-1 border-b border-apple-gray-2">
+                  <th className="px-4 py-3 text-left text-mini font-semibold text-apple-gray-5 uppercase tracking-wider">
                     Course Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-mini font-semibold text-apple-gray-5 uppercase tracking-wider">
                     SubTracks & Tracks
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-mini font-semibold text-apple-gray-5 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCourses.map((course) => (
-                  <tr key={course.course_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <BookOpen className="h-5 w-5 text-green-600" />
+              <tbody className="divide-y divide-apple-gray-2">
+                {filteredCourses.map((course, index) => (
+                  <tr 
+                    key={course.course_id} 
+                    className="hover:bg-apple-gray-1 transition-colors"
+                    style={{ animationDelay: `${0.2 + index * 0.02}s` }}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center flex-shrink-0">
+                          <BookOpen className="w-4 h-4 text-white" />
                         </div>
-                        <div className="ml-3">
+                        <div className="min-w-0">
                           {editingCourseId === course.course_id ? (
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center gap-2">
                               <input
                                 type="text"
                                 value={editCourseName}
                                 onChange={(e) => setEditCourseName(e.target.value)}
-                                className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                className="px-3 py-1.5 rounded-lg border border-apple-gray-3 focus:outline-none focus:ring-2 focus:ring-apple-blue focus:border-transparent text-body"
                                 autoFocus
                                 disabled={saving}
                               />
                               <button
                                 onClick={() => saveCourseName(course.course_id)}
-                                className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
                                 disabled={saving}
                               >
-                                <Check size={18} />
+                                <Check className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={cancelEditingCourse}
-                                className="p-1 text-red-600 hover:text-red-700 disabled:opacity-50"
+                                className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                                 disabled={saving}
                               >
-                                <X size={18} />
+                                <X className="w-4 h-4" />
                               </button>
                             </div>
                           ) : (
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm font-medium text-gray-900">
+                            <div className="flex items-center gap-2 group">
+                              <span className="text-body font-medium text-apple-gray-6">
                                 {course.course_name}
                               </span>
                               <button
                                 onClick={() => startEditingCourse(course)}
-                                className="p-1 text-gray-400 hover:text-gray-600"
+                                className="p-1 rounded text-apple-gray-3 hover:text-apple-gray-5 opacity-0 group-hover:opacity-100 transition-all"
                               >
-                                <Edit2 size={14} />
+                                <Edit2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       {course.subtracks.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                          {course.subtracks.map((st, index) => (
+                          {course.subtracks.map((st, idx) => (
                             <div
-                              key={`${st.subtrack_id}-${index}`}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs bg-blue-50 border border-blue-200"
+                              key={`${st.subtrack_id}-${idx}`}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200"
                             >
-                              <Tag className="h-3 w-3 text-blue-600 mr-1" />
-                              <span className="font-medium text-blue-900">{st.subtrack_name}</span>
-                              <span className="mx-1 text-blue-400">·</span>
-                              <span className="text-blue-600">{st.track_name}</span>
+                              <Tag className="w-3 h-3 text-blue-600" />
+                              <span className="text-mini font-medium text-blue-900">{st.subtrack_name}</span>
+                              <span className="text-blue-400">·</span>
+                              <span className="text-mini text-blue-600">{st.track_name}</span>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-500 italic">
+                        <span className="text-caption text-apple-gray-4 italic">
                           Not assigned to any subtrack
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
                         <Button
                           size="sm"
-                          variant="secondary"
+                          variant="ghost"
                           onClick={() => openLinksModal(course)}
                         >
-                          <Link size={14} className="mr-1" />
+                          <Link className="w-4 h-4 mr-1" />
                           Links
                         </Button>
                         <Button
                           size="sm"
-                          variant="secondary"
+                          variant="outline"
                           onClick={() => openEditSubtracks(course)}
                         >
-                          <Plus size={14} className="mr-1" />
+                          <Plus className="w-4 h-4 mr-1" />
                           Add to SubTrack
                         </Button>
                       </div>
@@ -381,8 +384,10 @@ export const CoursesPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-            <p className="text-sm text-gray-500">
+          
+          {/* Footer */}
+          <div className="px-4 py-3 bg-apple-gray-1 border-t border-apple-gray-2">
+            <p className="text-mini text-apple-gray-4">
               Showing {filteredCourses.length} of {courses.length} course{courses.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -410,18 +415,17 @@ export const CoursesPage: React.FC = () => {
             required
             autoFocus
           />
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800">
-              After entering the course name, you'll select which subtrack this course belongs
-              to.
+          <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
+            <p className="text-body text-blue-800">
+              After entering the course name, you'll select which subtrack this course belongs to.
             </p>
           </div>
-          <div className="flex justify-end space-x-3">
-            <Button type="button" variant="secondary" onClick={() => setIsCreateModalOpen(false)}>
+          <ModalFooter>
+            <Button type="button" variant="outline" onClick={() => setIsCreateModalOpen(false)}>
               Cancel
             </Button>
             <Button type="submit">Next: Select SubTrack</Button>
-          </div>
+          </ModalFooter>
         </form>
       </Modal>
 

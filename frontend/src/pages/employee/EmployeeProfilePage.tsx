@@ -1,8 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, User } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import { 
+  ArrowLeft, 
+  Edit2, 
+  Save, 
+  X, 
+  Plus, 
+  Trash2, 
+  User,
+  Briefcase,
+  Award,
+  Sparkles,
+  Target
+} from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Input, Textarea } from '@/components/ui/Input';
 import { employeeService } from '@/services/employee.service';
 import { EmployeeProfileDetails } from '@/types';
 
@@ -76,21 +89,15 @@ export const EmployeeProfilePage: React.FC = () => {
         certifications: editCertifications,
       };
 
-      console.log('Saving profile data:', profileData);
       const updated = await employeeService.updateProfileDetails(profileData);
-      console.log('Profile updated successfully:', updated);
-
       setProfile(updated);
       setEditing(false);
       setNewPrimarySkill('');
       setNewSecondarySkill('');
       setNewProject('');
       setNewCertification('');
-
-      alert('Profile updated successfully!');
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -99,14 +106,7 @@ export const EmployeeProfilePage: React.FC = () => {
   // Helper functions for managing lists
   const addPrimarySkill = () => {
     const trimmedSkill = newPrimarySkill.trim();
-    if (!trimmedSkill) {
-      alert('Please enter a skill before adding.');
-      return;
-    }
-    if (editPrimarySkills.includes(trimmedSkill)) {
-      alert('This skill is already added.');
-      return;
-    }
+    if (!trimmedSkill || editPrimarySkills.includes(trimmedSkill)) return;
     setEditPrimarySkills([...editPrimarySkills, trimmedSkill]);
     setNewPrimarySkill('');
   };
@@ -117,14 +117,7 @@ export const EmployeeProfilePage: React.FC = () => {
 
   const addSecondarySkill = () => {
     const trimmedSkill = newSecondarySkill.trim();
-    if (!trimmedSkill) {
-      alert('Please enter a skill before adding.');
-      return;
-    }
-    if (editSecondarySkills.includes(trimmedSkill)) {
-      alert('This skill is already added.');
-      return;
-    }
+    if (!trimmedSkill || editSecondarySkills.includes(trimmedSkill)) return;
     setEditSecondarySkills([...editSecondarySkills, trimmedSkill]);
     setNewSecondarySkill('');
   };
@@ -135,14 +128,7 @@ export const EmployeeProfilePage: React.FC = () => {
 
   const addProject = () => {
     const trimmedProject = newProject.trim();
-    if (!trimmedProject) {
-      alert('Please enter a project description before adding.');
-      return;
-    }
-    if (editPastProjects.includes(trimmedProject)) {
-      alert('This project is already added.');
-      return;
-    }
+    if (!trimmedProject || editPastProjects.includes(trimmedProject)) return;
     setEditPastProjects([...editPastProjects, trimmedProject]);
     setNewProject('');
   };
@@ -153,14 +139,7 @@ export const EmployeeProfilePage: React.FC = () => {
 
   const addCertification = () => {
     const trimmedCert = newCertification.trim();
-    if (!trimmedCert) {
-      alert('Please enter a certification before adding.');
-      return;
-    }
-    if (editCertifications.includes(trimmedCert)) {
-      alert('This certification is already added.');
-      return;
-    }
+    if (!trimmedCert || editCertifications.includes(trimmedCert)) return;
     setEditCertifications([...editCertifications, trimmedCert]);
     setNewCertification('');
   };
@@ -171,34 +150,43 @@ export const EmployeeProfilePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-apple-gray-2"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-apple-blue border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-apple-gray-4 text-body">Loading profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <Button variant="secondary" onClick={() => navigate('/employee/dashboard')}>
-          <ArrowLeft size={20} className="mr-2" />
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+      {/* Header */}
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/employee/dashboard')}
+          className="group self-start"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
           Back to Dashboard
         </Button>
         {!editing ? (
-          <Button onClick={handleEdit}>
-            <Edit2 size={20} className="mr-2" />
+          <Button onClick={handleEdit} variant="outline">
+            <Edit2 className="w-4 h-4 mr-2" />
             Edit Profile
           </Button>
         ) : (
-          <div className="flex space-x-2">
-            <Button variant="secondary" onClick={handleCancel}>
-              <X size={20} className="mr-2" />
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleCancel}>
+              <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
             <Button onClick={handleSave} loading={saving}>
-              <Save size={20} className="mr-2" />
+              <Save className="w-4 h-4 mr-2" />
               Save Changes
             </Button>
           </div>
@@ -207,237 +195,276 @@ export const EmployeeProfilePage: React.FC = () => {
 
       <div className="space-y-6">
         {/* Brief Profile */}
-        <Card>
-          <div className="flex items-start mb-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <User className="h-6 w-6 text-blue-600" />
+        <Card variant="elevated" className="animate-slide-up">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-title-2 font-semibold text-apple-gray-6">Brief Profile</h2>
+                <p className="text-caption text-apple-gray-4">3-4 sentences about your professional background</p>
+              </div>
             </div>
-            <div className="ml-4 flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">Brief Profile</h2>
-              <p className="text-sm text-gray-600">3-4 sentences about your professional background</p>
-            </div>
-          </div>
-          {editing ? (
-            <textarea
-              value={editBriefProfile}
-              onChange={(e) => setEditBriefProfile(e.target.value)}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Describe your professional background, experience, and expertise..."
-            />
-          ) : (
-            <p className="text-gray-700 whitespace-pre-line">
-              {profile?.brief_profile || 'No profile description added yet.'}
-            </p>
-          )}
+          </CardHeader>
+          <CardContent>
+            {editing ? (
+              <Textarea
+                value={editBriefProfile}
+                onChange={(e) => setEditBriefProfile(e.target.value)}
+                rows={4}
+                placeholder="Describe your professional background, experience, and expertise..."
+              />
+            ) : (
+              <p className="text-body text-apple-gray-5 whitespace-pre-line leading-relaxed">
+                {profile?.brief_profile || 'No profile description added yet.'}
+              </p>
+            )}
+          </CardContent>
         </Card>
 
         {/* Primary Skills */}
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Primary Skills</h2>
-          {editing ? (
-            <div className="space-y-3">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={newPrimarySkill}
-                  onChange={(e) => setNewPrimarySkill(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addPrimarySkill()}
-                  placeholder="Add a primary skill..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <Button onClick={addPrimarySkill}>
-                  <Plus size={20} />
-                </Button>
+        <Card variant="elevated" className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
               </div>
+              <h2 className="text-title-2 font-semibold text-apple-gray-6">Primary Skills</h2>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {editing ? (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={newPrimarySkill}
+                    onChange={(e) => setNewPrimarySkill(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addPrimarySkill())}
+                    placeholder="Add a primary skill..."
+                    className="flex-1"
+                  />
+                  <Button onClick={addPrimarySkill} size="sm">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {editPrimarySkills.map((skill, index) => (
+                    <div
+                      key={index}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-100 text-purple-800 text-body font-medium"
+                    >
+                      {skill}
+                      <button
+                        onClick={() => removePrimarySkill(index)}
+                        className="hover:text-purple-900 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {editPrimarySkills.length === 0 && (
+                    <p className="text-caption text-apple-gray-4">No primary skills added yet.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
               <div className="flex flex-wrap gap-2">
-                {editPrimarySkills.map((skill, index) => (
-                  <div
+                {profile?.primary_skills.map((skill, index) => (
+                  <span
                     key={index}
-                    className="inline-flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
+                    className="inline-block px-3 py-1.5 rounded-full bg-purple-100 text-purple-800 text-body font-medium"
                   >
                     {skill}
-                    <button
-                      onClick={() => removePrimarySkill(index)}
-                      className="ml-2 hover:text-blue-900"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
+                  </span>
                 ))}
-                {editPrimarySkills.length === 0 && (
-                  <p className="text-gray-500 text-sm">No primary skills added yet.</p>
+                {(!profile?.primary_skills || profile.primary_skills.length === 0) && (
+                  <p className="text-body text-apple-gray-4">No primary skills added yet.</p>
                 )}
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {profile?.primary_skills.map((skill, index) => (
-                <span
-                  key={index}
-                  className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
-                >
-                  {skill}
-                </span>
-              ))}
-              {(!profile?.primary_skills || profile.primary_skills.length === 0) && (
-                <p className="text-gray-500">No primary skills added yet.</p>
-              )}
-            </div>
-          )}
+            )}
+          </CardContent>
         </Card>
 
         {/* Secondary Skills */}
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Secondary Skills</h2>
-          {editing ? (
-            <div className="space-y-3">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={newSecondarySkill}
-                  onChange={(e) => setNewSecondarySkill(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addSecondarySkill()}
-                  placeholder="Add a secondary skill..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <Button onClick={addSecondarySkill}>
-                  <Plus size={20} />
-                </Button>
+        <Card variant="elevated" className="animate-slide-up" style={{ animationDelay: '0.15s' }}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                <Target className="w-5 h-5 text-white" />
               </div>
+              <h2 className="text-title-2 font-semibold text-apple-gray-6">Secondary Skills</h2>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {editing ? (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={newSecondarySkill}
+                    onChange={(e) => setNewSecondarySkill(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSecondarySkill())}
+                    placeholder="Add a secondary skill..."
+                    className="flex-1"
+                  />
+                  <Button onClick={addSecondarySkill} size="sm">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {editSecondarySkills.map((skill, index) => (
+                    <div
+                      key={index}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-body font-medium"
+                    >
+                      {skill}
+                      <button
+                        onClick={() => removeSecondarySkill(index)}
+                        className="hover:text-emerald-900 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {editSecondarySkills.length === 0 && (
+                    <p className="text-caption text-apple-gray-4">No secondary skills added yet.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
               <div className="flex flex-wrap gap-2">
-                {editSecondarySkills.map((skill, index) => (
-                  <div
+                {profile?.secondary_skills.map((skill, index) => (
+                  <span
                     key={index}
-                    className="inline-flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium"
+                    className="inline-block px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-body font-medium"
                   >
                     {skill}
-                    <button
-                      onClick={() => removeSecondarySkill(index)}
-                      className="ml-2 hover:text-green-900"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
+                  </span>
                 ))}
-                {editSecondarySkills.length === 0 && (
-                  <p className="text-gray-500 text-sm">No secondary skills added yet.</p>
+                {(!profile?.secondary_skills || profile.secondary_skills.length === 0) && (
+                  <p className="text-body text-apple-gray-4">No secondary skills added yet.</p>
                 )}
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {profile?.secondary_skills.map((skill, index) => (
-                <span
-                  key={index}
-                  className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium"
-                >
-                  {skill}
-                </span>
-              ))}
-              {(!profile?.secondary_skills || profile.secondary_skills.length === 0) && (
-                <p className="text-gray-500">No secondary skills added yet.</p>
-              )}
-            </div>
-          )}
+            )}
+          </CardContent>
         </Card>
 
         {/* Past Projects */}
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Past Projects</h2>
-          {editing ? (
-            <div className="space-y-3">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={newProject}
-                  onChange={(e) => setNewProject(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addProject()}
-                  placeholder="Add a past project..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <Button onClick={addProject}>
-                  <Plus size={20} />
-                </Button>
+        <Card variant="elevated" className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-white" />
               </div>
+              <h2 className="text-title-2 font-semibold text-apple-gray-6">Past Projects</h2>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {editing ? (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={newProject}
+                    onChange={(e) => setNewProject(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addProject())}
+                    placeholder="Add a past project..."
+                    className="flex-1"
+                  />
+                  <Button onClick={addProject} size="sm">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <ul className="space-y-2">
+                  {editPastProjects.map((project, index) => (
+                    <li key={index} className="flex items-start gap-3 p-3 rounded-xl bg-apple-gray-1 group">
+                      <span className="w-2 h-2 mt-2 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex-shrink-0"></span>
+                      <span className="flex-1 text-body text-apple-gray-6">{project}</span>
+                      <button
+                        onClick={() => removeProject(index)}
+                        className="p-1 text-apple-gray-4 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                  {editPastProjects.length === 0 && (
+                    <p className="text-caption text-apple-gray-4">No past projects added yet.</p>
+                  )}
+                </ul>
+              </div>
+            ) : (
               <ul className="space-y-2">
-                {editPastProjects.map((project, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="flex-1 text-gray-700">• {project}</span>
-                    <button
-                      onClick={() => removeProject(index)}
-                      className="ml-2 text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                {profile?.past_projects.map((project, index) => (
+                  <li key={index} className="flex items-start gap-3 p-3 rounded-xl bg-apple-gray-1">
+                    <span className="w-2 h-2 mt-2 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex-shrink-0"></span>
+                    <span className="text-body text-apple-gray-6">{project}</span>
                   </li>
                 ))}
-                {editPastProjects.length === 0 && (
-                  <p className="text-gray-500 text-sm">No past projects added yet.</p>
+                {(!profile?.past_projects || profile.past_projects.length === 0) && (
+                  <p className="text-body text-apple-gray-4">No past projects added yet.</p>
                 )}
               </ul>
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {profile?.past_projects.map((project, index) => (
-                <li key={index} className="text-gray-700">
-                  • {project}
-                </li>
-              ))}
-              {(!profile?.past_projects || profile.past_projects.length === 0) && (
-                <p className="text-gray-500">No past projects added yet.</p>
-              )}
-            </ul>
-          )}
+            )}
+          </CardContent>
         </Card>
 
         {/* Certifications */}
-        <Card>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Certifications</h2>
-          {editing ? (
-            <div className="space-y-3">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={newCertification}
-                  onChange={(e) => setNewCertification(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addCertification()}
-                  placeholder="Add a certification..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <Button onClick={addCertification}>
-                  <Plus size={20} />
-                </Button>
+        <Card variant="elevated" className="animate-slide-up" style={{ animationDelay: '0.25s' }}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+                <Award className="w-5 h-5 text-white" />
               </div>
+              <h2 className="text-title-2 font-semibold text-apple-gray-6">Certifications</h2>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {editing ? (
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={newCertification}
+                    onChange={(e) => setNewCertification(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCertification())}
+                    placeholder="Add a certification..."
+                    className="flex-1"
+                  />
+                  <Button onClick={addCertification} size="sm">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <ul className="space-y-2">
+                  {editCertifications.map((cert, index) => (
+                    <li key={index} className="flex items-start gap-3 p-3 rounded-xl bg-apple-gray-1 group">
+                      <Award className="w-5 h-5 text-pink-600 flex-shrink-0 mt-0.5" />
+                      <span className="flex-1 text-body text-apple-gray-6">{cert}</span>
+                      <button
+                        onClick={() => removeCertification(index)}
+                        className="p-1 text-apple-gray-4 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                  {editCertifications.length === 0 && (
+                    <p className="text-caption text-apple-gray-4">No certifications added yet.</p>
+                  )}
+                </ul>
+              </div>
+            ) : (
               <ul className="space-y-2">
-                {editCertifications.map((cert, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="flex-1 text-gray-700">• {cert}</span>
-                    <button
-                      onClick={() => removeCertification(index)}
-                      className="ml-2 text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                {profile?.certifications.map((cert, index) => (
+                  <li key={index} className="flex items-start gap-3 p-3 rounded-xl bg-apple-gray-1">
+                    <Award className="w-5 h-5 text-pink-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-body text-apple-gray-6">{cert}</span>
                   </li>
                 ))}
-                {editCertifications.length === 0 && (
-                  <p className="text-gray-500 text-sm">No certifications added yet.</p>
+                {(!profile?.certifications || profile.certifications.length === 0) && (
+                  <p className="text-body text-apple-gray-4">No certifications added yet.</p>
                 )}
               </ul>
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {profile?.certifications.map((cert, index) => (
-                <li key={index} className="text-gray-700">
-                  • {cert}
-                </li>
-              ))}
-              {(!profile?.certifications || profile.certifications.length === 0) && (
-                <p className="text-gray-500">No certifications added yet.</p>
-              )}
-            </ul>
-          )}
+            )}
+          </CardContent>
         </Card>
       </div>
     </div>

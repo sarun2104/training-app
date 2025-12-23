@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, FolderTree, Layers, BookOpen } from 'lucide-react';
+import { ChevronRight, ChevronDown, FolderTree, Layers, BookOpen, Network } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/Card';
 
 interface Course {
   course_id: string;
@@ -22,6 +23,16 @@ interface TreeViewProps {
   data: Track[];
   loading?: boolean;
 }
+
+// Track gradient colors
+const trackGradients = [
+  'from-blue-500 to-indigo-600',
+  'from-emerald-500 to-green-600',
+  'from-purple-500 to-violet-600',
+  'from-orange-500 to-amber-600',
+  'from-pink-500 to-rose-600',
+  'from-cyan-500 to-teal-600',
+];
 
 export const TreeView: React.FC<TreeViewProps> = ({ data, loading = false }) => {
   const [expandedTracks, setExpandedTracks] = useState<Set<string>>(new Set());
@@ -58,123 +69,138 @@ export const TreeView: React.FC<TreeViewProps> = ({ data, loading = false }) => 
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p className="mt-2 text-gray-600">Loading tree structure...</p>
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-apple-gray-2"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-apple-blue border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-apple-gray-4 text-body">Loading tree structure...</p>
+        </div>
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FolderTree className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No data</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          Create tracks, subtracks, and courses to see them here.
-        </p>
-      </div>
+      <Card variant="elevated">
+        <div className="text-center py-16">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <Network className="w-10 h-10 text-gray-400" />
+          </div>
+          <h3 className="text-title-1 font-semibold text-apple-gray-6 mb-2">No data yet</h3>
+          <p className="text-body text-apple-gray-4 max-w-md mx-auto">
+            Create tracks, subtracks, and courses to see them here.
+          </p>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {data.map((track) => {
+    <div className="space-y-4">
+      {data.map((track, trackIndex) => {
         const isTrackExpanded = expandedTracks.has(track.track_id);
+        const gradient = trackGradients[trackIndex % trackGradients.length];
 
         return (
-          <div key={track.track_id} className="border border-gray-200 rounded-lg overflow-hidden">
+          <Card 
+            key={track.track_id} 
+            variant="elevated" 
+            className="overflow-hidden animate-slide-up"
+            style={{ animationDelay: `${trackIndex * 0.05}s` }}
+          >
             {/* Track Level */}
             <div
               onClick={() => toggleTrack(track.track_id)}
-              className="flex items-center p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors"
+              className="flex items-center p-4 bg-gradient-to-r from-apple-gray-1 to-white hover:from-apple-gray-2/50 cursor-pointer transition-all duration-200 border-b border-apple-gray-2"
             >
-              <div className="flex-shrink-0">
+              <button className="p-2 hover:bg-apple-gray-2 rounded-xl transition-colors mr-3">
                 {isTrackExpanded ? (
-                  <ChevronDown className="h-5 w-5 text-blue-600" />
+                  <ChevronDown className="w-5 h-5 text-apple-gray-5" />
                 ) : (
-                  <ChevronRight className="h-5 w-5 text-blue-600" />
+                  <ChevronRight className="w-5 h-5 text-apple-gray-5" />
                 )}
+              </button>
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md mr-4`}>
+                <FolderTree className="w-5 h-5 text-white" />
               </div>
-              <div className="ml-2 flex-shrink-0">
-                <FolderTree className="h-5 w-5 text-blue-600" />
+              <div className="flex-1">
+                <h3 className="text-title-2 font-semibold text-apple-gray-6">{track.track_name}</h3>
               </div>
-              <div className="ml-3 flex-1">
-                <h3 className="text-base font-semibold text-gray-900">{track.track_name}</h3>
-              </div>
-              <div className="ml-2 text-sm text-gray-500">
-                {track.subtracks.length} subtrack{track.subtracks.length !== 1 ? 's' : ''}
+              <div className="px-3 py-1.5 rounded-full bg-apple-gray-1 border border-apple-gray-2">
+                <span className="text-caption font-medium text-apple-gray-5">
+                  {track.subtracks.length} subtrack{track.subtracks.length !== 1 ? 's' : ''}
+                </span>
               </div>
             </div>
 
             {/* Subtracks Level */}
-            {isTrackExpanded && track.subtracks.length > 0 && (
-              <div className="bg-white">
-                {track.subtracks.map((subtrack) => {
-                  const isSubtrackExpanded = expandedSubtracks.has(subtrack.subtrack_id);
+            {isTrackExpanded && (
+              <CardContent className="p-0 bg-white">
+                {track.subtracks.length === 0 ? (
+                  <div className="p-6 pl-20 text-body text-apple-gray-4 italic border-t border-apple-gray-2">
+                    No subtracks in this track
+                  </div>
+                ) : (
+                  track.subtracks.map((subtrack, subIndex) => {
+                    const isSubtrackExpanded = expandedSubtracks.has(subtrack.subtrack_id);
 
-                  return (
-                    <div key={subtrack.subtrack_id} className="border-t border-gray-200">
-                      <div
-                        onClick={() => toggleSubtrack(subtrack.subtrack_id)}
-                        className="flex items-center p-3 pl-10 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
-                      >
-                        <div className="flex-shrink-0">
-                          {isSubtrackExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-green-600" />
-                          )}
+                    return (
+                      <div key={subtrack.subtrack_id} className="border-t border-apple-gray-2">
+                        <div
+                          onClick={() => toggleSubtrack(subtrack.subtrack_id)}
+                          className="flex items-center p-4 pl-16 bg-apple-gray-1/30 hover:bg-apple-gray-1 cursor-pointer transition-colors"
+                        >
+                          <button className="p-1.5 hover:bg-apple-gray-2 rounded-lg transition-colors mr-3">
+                            {isSubtrackExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-emerald-600" />
+                            )}
+                          </button>
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-sm mr-3">
+                            <Layers className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-body font-medium text-apple-gray-6">
+                              {subtrack.subtrack_name}
+                            </h4>
+                          </div>
+                          <span className="text-caption text-apple-gray-4">
+                            {subtrack.courses.length} course{subtrack.courses.length !== 1 ? 's' : ''}
+                          </span>
                         </div>
-                        <div className="ml-2 flex-shrink-0">
-                          <Layers className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div className="ml-3 flex-1">
-                          <h4 className="text-sm font-medium text-gray-900">
-                            {subtrack.subtrack_name}
-                          </h4>
-                        </div>
-                        <div className="ml-2 text-xs text-gray-500">
-                          {subtrack.courses.length} course{subtrack.courses.length !== 1 ? 's' : ''}
-                        </div>
+
+                        {/* Courses Level */}
+                        {isSubtrackExpanded && (
+                          <div className="bg-white">
+                            {subtrack.courses.length === 0 ? (
+                              <div className="p-4 pl-28 text-caption text-apple-gray-4 italic border-t border-apple-gray-2/50">
+                                No courses in this subtrack
+                              </div>
+                            ) : (
+                              subtrack.courses.map((course, courseIndex) => (
+                                <div
+                                  key={course.course_id}
+                                  className="flex items-center p-3 pl-28 border-t border-apple-gray-2/50 hover:bg-apple-gray-1/50 transition-colors"
+                                >
+                                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm mr-3">
+                                    <BookOpen className="w-3.5 h-3.5 text-white" />
+                                  </div>
+                                  <p className="text-body text-apple-gray-5">{course.course_name}</p>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
-
-                      {/* Courses Level */}
-                      {isSubtrackExpanded && subtrack.courses.length > 0 && (
-                        <div className="bg-white">
-                          {subtrack.courses.map((course) => (
-                            <div
-                              key={course.course_id}
-                              className="flex items-center p-2 pl-20 border-t border-gray-100 hover:bg-gray-50 transition-colors"
-                            >
-                              <div className="flex-shrink-0">
-                                <BookOpen className="h-4 w-4 text-yellow-600" />
-                              </div>
-                              <div className="ml-3 flex-1">
-                                <p className="text-sm text-gray-700">{course.course_name}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {isSubtrackExpanded && subtrack.courses.length === 0 && (
-                        <div className="p-3 pl-20 text-xs text-gray-500 italic border-t border-gray-100">
-                          No courses in this subtrack
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })
+                )}
+              </CardContent>
             )}
-
-            {isTrackExpanded && track.subtracks.length === 0 && (
-              <div className="p-3 pl-10 text-sm text-gray-500 italic bg-white border-t border-gray-200">
-                No subtracks in this track
-              </div>
-            )}
-          </div>
+          </Card>
         );
       })}
     </div>
